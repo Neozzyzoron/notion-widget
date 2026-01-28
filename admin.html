@@ -2,22 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Widget Builder V3</title>
+    <title>Widget Admin Pro</title>
     <style>
         /* CORE LAYOUT */
         body { margin: 0; padding: 0; height: 100vh; display: flex; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f7f7f5; color: #37352f; overflow: hidden; }
         
-        .panel-left { width: 55%; padding: 20px; overflow-y: auto; border-right: 1px solid #e0e0e0; background: #fff; box-sizing: border-box; }
-        .panel-right { width: 45%; background: #f7f7f5; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px; box-sizing: border-box; }
+        /* Left Panel (Editor) */
+        .panel-left { width: 50%; padding: 20px; overflow-y: auto; border-right: 1px solid #e0e0e0; background: #fff; box-sizing: border-box; }
+        
+        /* Right Panel (Preview) */
+        .panel-right { width: 50%; background: #eef0f2; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
         
         /* PREVIEW FRAME */
-        .preview-container {
-            width: 100%; max-width: 500px; height: 90%; background: white; border-radius: 8px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #e0e0e0;
+        .preview-wrapper {
+            flex-grow: 1;
+            background: white; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            overflow: hidden; 
+            border: 1px solid #ccc;
             display: flex; flex-direction: column;
         }
-        .preview-header { padding: 8px 15px; background: #fafafa; border-bottom: 1px solid #eee; font-size: 0.75rem; color: #aaa; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-        iframe { flex-grow: 1; width: 100%; border: none; }
+        .preview-toolbar {
+            padding: 10px; background: #dfe1e6; border-bottom: 1px solid #ccc;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .preview-label { font-size: 0.75rem; font-weight: bold; color: #555; text-transform: uppercase; letter-spacing: 1px;}
+        iframe { flex-grow: 1; width: 100%; border: none; background: white; }
 
         /* EDITOR STYLES */
         h1 { margin-top: 0; font-size: 1.5rem; letter-spacing: -0.5px; }
@@ -61,8 +72,6 @@
         
         .row { display: flex; gap: 10px; margin-top: 10px; } 
         .col { flex: 1; }
-
-        /* New Visual Controls */
         .viz-controls { background: #f9f9f9; padding: 10px; border-radius: 4px; margin-top: 10px; border: 1px solid #eee; }
 
         /* Add Buttons */
@@ -81,22 +90,35 @@
 
         /* Bottom Action Area */
         .action-area { margin-top: 30px; padding: 15px; background: #2c3e50; border-radius: 8px; color: white; }
-        .link-box { background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 0.75rem; word-break: break-all; margin-bottom: 10px; }
-        .action-btns { display: flex; gap: 10px; }
-        .btn-copy { background: #34495e; color: white; flex: 1; border: 1px solid #566573; padding: 10px; }
-        .btn-new { background: #27ae60; color: white; flex: 1; padding: 10px; }
+        .link-box { 
+            background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; 
+            font-family: monospace; font-size: 0.75rem; word-break: break-all; margin-bottom: 10px; 
+            max-height: 60px; overflow-y: auto;
+        }
+        
+        /* NEW ACTION BUTTONS LAYOUT */
+        .action-btns { display: flex; gap: 8px; }
+        .btn-action { padding: 10px; font-size: 0.85rem; color: white; border-radius: 4px; border:none; cursor: pointer; font-weight: 600; }
+        .btn-refresh { background: #2980b9; flex: 2; } /* Blue, Main Action */
+        .btn-copy { background: #34495e; flex: 2; border: 1px solid #566573; } /* Dark */
+        .btn-open { background: #7f8c8d; flex: 0; min-width: 40px; font-size: 1.2rem; line-height: 1rem; padding: 0; display:flex; align-items:center; justify-content:center;} /* Small Square */
+        
+        .btn-refresh:hover { background: #3498db; }
+        .btn-copy:hover { background: #2c3e50; }
+        .btn-open:hover { background: #95a5a6; }
+
     </style>
 </head>
 <body>
 
 <div class="panel-left">
-    <h1>Widget Builder V3</h1>
+    <h1>Widget Builder</h1>
     
     <h2>1. Global Settings</h2>
     <div class="settings-grid">
-        <div><label>Time</label><select id="set-time" onchange="updateAll()"><option value="12">12 Hour</option><option value="24">24 Hour</option></select></div>
-        <div><label>Theme</label><select id="set-theme" onchange="updateAll()"><option value="standard">Standard</option><option value="minimal">Minimal</option><option value="card">Cards</option></select></div>
-        <div><label>Font Size</label><select id="set-font" onchange="updateAll()"><option value="standard">Standard</option><option value="small">Small</option><option value="large">Large</option></select></div>
+        <div><label>Time</label><select id="set-time" onchange="updateState()"><option value="12">12 Hour</option><option value="24">24 Hour</option></select></div>
+        <div><label>Theme</label><select id="set-theme" onchange="updateState()"><option value="standard">Standard</option><option value="minimal">Minimal</option><option value="card">Cards</option></select></div>
+        <div><label>Font Size</label><select id="set-font" onchange="updateState()"><option value="standard">Standard</option><option value="small">Small</option><option value="large">Large</option></select></div>
     </div>
 
     <h2>2. Blocks (Drag to Reorder)</h2>
@@ -113,18 +135,21 @@
     </div>
 
     <div class="action-area">
-        <label style="color:#aaa; font-size:0.7rem;">EMBED LINK (Updates Automatically)</label>
+        <label style="color:#aaa; font-size:0.7rem;">EMBED LINK</label>
         <div class="link-box" id="result-url">...</div>
         <div class="action-btns">
-            <button class="btn-copy" onclick="copyLink()">COPY LINK</button>
-            <button class="btn-new" onclick="window.open(generateLink(), '_blank')">OPEN FULL TAB</button>
+            <button class="btn-action btn-refresh" onclick="refreshPreview()">↻ REFRESH PREVIEW</button>
+            <button class="btn-action btn-copy" id="btn-copy" onclick="copyLink()">COPY LINK</button>
+            <button class="btn-action btn-open" onclick="window.open(generateLink(), '_blank')" title="Open in New Tab">⬈</button>
         </div>
     </div>
 </div>
 
 <div class="panel-right">
-    <div class="preview-container">
-        <div class="preview-header">Live Preview</div>
+    <div class="preview-wrapper">
+        <div class="preview-toolbar">
+            <span class="preview-label">Live Desktop Preview</span>
+        </div>
         <iframe id="preview-frame" src=""></iframe>
     </div>
 </div>
@@ -132,8 +157,7 @@
 <script>
     let settings = { use24h: false, theme: 'standard', fontSize: 'standard' };
     let blocks = [];
-    let updateTimer;
-
+    
     // --- INIT ---
     function init() {
         try {
@@ -153,7 +177,7 @@
         } catch(e) {}
         
         renderBlocks();
-        updateAll();
+        refreshPreview(); 
     }
 
     // --- RENDER ---
@@ -167,7 +191,6 @@
             div.draggable = true;
             div.dataset.index = index;
 
-            // Drag Events
             div.addEventListener('dragstart', handleDragStart);
             div.addEventListener('dragover', e => e.preventDefault());
             div.addEventListener('drop', handleDrop);
@@ -189,16 +212,16 @@
                 <div class="block-content">
             `;
 
-            // Specific Inputs
+            // Inputs
             if (block.type === 'header') html += `<label>Text</label><input type="text" value="${block.text}" oninput="updateBlock(${index}, 'text', this.value)">`;
-            else if (block.type === 'world_clock') html += `<label>Locations (JSON)</label><textarea rows="3" onchange="updateBlockJSON(${index}, 'locations', this.value)">${JSON.stringify(block.locations)}</textarea>`;
-            else if (block.type === 'progress_group') html += `<label>Items (JSON)</label><textarea rows="3" onchange="updateBlockJSON(${index}, 'items', this.value)">${JSON.stringify(block.items)}</textarea>`;
+            else if (block.type === 'world_clock') html += `<label>Locations (JSON)</label><textarea rows="3" onchange="updateBlockJSON(${index}, 'locations', this.value, this)">${JSON.stringify(block.locations)}</textarea>`;
+            else if (block.type === 'progress_group') html += `<label>Items (JSON)</label><textarea rows="3" onchange="updateBlockJSON(${index}, 'items', this.value, this)">${JSON.stringify(block.items)}</textarea>`;
             else if (block.type === 'progress_custom') html += `<label>Label</label><input type="text" value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><label>Start</label><input type="date" value="${block.start}" oninput="updateBlock(${index}, 'start', this.value)"></div><div class="col"><label>End</label><input type="date" value="${block.end}" oninput="updateBlock(${index}, 'end', this.value)"></div></div>`;
             else if (block.type === 'progress_cycle') html += `<label>Label</label><input type="text" value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><label>Anchor Date</label><input type="date" value="${block.anchor}" oninput="updateBlock(${index}, 'anchor', this.value)"></div><div class="col"><label>Days</label><input type="number" value="${block.days}" oninput="updateBlock(${index}, 'days', this.value)"></div></div>`;
             else if (block.type === 'countdown') html += `<label>Label</label><input type="text" value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><label>Date</label><input type="date" value="${block.date}" oninput="updateBlock(${index}, 'date', this.value)"></div><div class="col"><label>Style</label><select onchange="updateBlock(${index}, 'style', this.value)"><option value="detailed" ${block.style=='detailed'?'selected':''}>Detailed</option><option value="days" ${block.style=='days'?'selected':''}>Days Only</option></select></div></div>`;
             else if (block.type === 'timer') html += `<label>Label</label><input type="text" value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><label>Hours</label><input type="number" value="${block.hours}" oninput="updateBlock(${index}, 'hours', this.value)"></div><div class="col"><label>Minutes</label><input type="number" value="${block.minutes}" oninput="updateBlock(${index}, 'minutes', this.value)"></div></div>`;
 
-            // --- VISUAL CONTROLS (Common to all) ---
+            // VISUAL CONTROLS
             html += `
                 <div class="viz-controls">
                     <div class="row" style="margin-top:0;">
@@ -241,23 +264,29 @@
     function toggleCard(header) { header.parentElement.classList.toggle('open'); }
 
     // --- STATE LOGIC ---
-    function updateAll() {
+    function updateState() {
         settings.use24h = document.getElementById('set-time').value === '24';
         settings.theme = document.getElementById('set-theme').value;
         settings.fontSize = document.getElementById('set-font').value;
-        
-        generateLink(); // Update Text
-        
-        // Debounce Iframe Update
-        clearTimeout(updateTimer);
-        updateTimer = setTimeout(() => {
-            const url = generateLink();
-            document.getElementById('preview-frame').src = url;
-        }, 200);
+        generateLink(); // Only updates the text, does not refresh iframe
     }
 
-    window.updateBlock = (idx, key, val) => { blocks[idx][key] = val; updateAll(); };
-    window.updateBlockJSON = (idx, key, val) => { try { blocks[idx][key] = JSON.parse(val); updateAll(); } catch(e){} };
+    // Explicit Refresh
+    window.refreshPreview = () => {
+        const url = generateLink();
+        document.getElementById('preview-frame').src = url;
+    };
+
+    window.updateBlock = (idx, key, val) => { blocks[idx][key] = val; updateState(); };
+    window.updateBlockJSON = (idx, key, val, el) => {
+        try {
+            blocks[idx][key] = JSON.parse(val);
+            el.classList.remove('invalid');
+            updateState();
+        } catch(e) {
+            el.classList.add('invalid');
+        }
+    };
 
     window.addBlock = (type) => {
         let b = { type };
@@ -272,30 +301,32 @@
         blocks.push(b);
         renderBlocks();
         const cards = document.querySelectorAll('.block-card');
-        if(cards.length) cards[cards.length-1].classList.add('open');
-        updateAll();
+        if(cards.length > 0) cards[cards.length-1].classList.add('open');
+        updateState();
+        refreshPreview(); // Auto-refresh on add
     };
 
-    window.removeBlock = (idx) => { blocks.splice(idx, 1); renderBlocks(); updateAll(); };
+    window.removeBlock = (idx) => { blocks.splice(idx, 1); renderBlocks(); updateState(); refreshPreview(); };
 
-    // --- DRAG ---
+    // --- DRAG & DROP ---
     let dragSrc = null;
     function handleDragStart(e) { dragSrc = this; e.dataTransfer.effectAllowed='move'; this.classList.add('dragging'); }
     function handleDrop(e) {
         if (e.stopPropagation) e.stopPropagation();
-        const s = parseInt(dragSrc.dataset.index);
-        const t = parseInt(this.dataset.index);
+        const srcIdx = parseInt(dragSrc.dataset.index);
+        const tgtIdx = parseInt(this.dataset.index);
         if (dragSrc !== this) {
-            const item = blocks[s];
-            blocks.splice(s, 1);
-            blocks.splice(t, 0, item);
+            const item = blocks[srcIdx];
+            blocks.splice(srcIdx, 1);
+            blocks.splice(tgtIdx, 0, item);
             renderBlocks();
-            updateAll();
+            updateState();
+            refreshPreview();
         }
         return false;
     }
 
-    // --- LINK ---
+    // --- UTILS ---
     function generateLink() {
         const json = JSON.stringify({ settings, blocks });
         const encoded = btoa(json);
@@ -310,7 +341,12 @@
 
     window.copyLink = () => {
         navigator.clipboard.writeText(document.getElementById('result-url').innerText)
-            .then(() => alert("Link Copied!"));
+            .then(() => {
+                const btn = document.getElementById('btn-copy');
+                const prev = btn.innerText;
+                btn.innerText = "COPIED!";
+                setTimeout(() => btn.innerText = prev, 1500);
+            });
     };
 
     init();
