@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notion Widget V39</title>
+    <title>Notion Widget V40</title>
     <style>
         :root {
             --bg-color: #FFFFFF; --text-color: #37352F; --accent-color: #E3E2E0;
@@ -20,7 +20,9 @@
         .widget-block.third-width { width: calc(33.333% - 0.67rem); }
         
         .theme-card .widget-block { border-color: var(--accent-color); padding: var(--pad); }
+        .theme-minimal .progress-bg { height: 4px; }
         
+        /* COLOR LOGIC V40 */
         .widget-header { font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-color, inherit); }
         
         /* GRID 3.0 */
@@ -31,14 +33,11 @@
         
         .break { flex-basis: 100%; height: 0; }
         
-        /* V39 OPACITY FIX: SEPARATE TRACK COLOR */
+        /* COMPONENTS */
         .progress-wrapper { margin-bottom: 0.5rem; }
         .progress-meta { display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 2px; color: var(--text-color, inherit); }
         
-        /* V39 Change: Background is now fully opaque but light grey/dark grey based on theme.
-           Fill is fully opaque accent color.
-           No more opacity inheritance issues.
-        */
+        /* V40: Default track is grey, Fill is accent */
         .progress-bg { height: 8px; background: rgba(128,128,128, 0.2); border-radius: 4px; overflow: hidden; } 
         .progress-fill { height: 100%; width: 0%; transition: width 0.5s ease-in-out; } 
         
@@ -56,7 +55,7 @@
         .moon-icon { font-size: 2.5em; line-height: 1; color: var(--block-color, #37352F); }
         .moon-details { font-size: 0.9em; line-height: 1.4; color: var(--text-color, inherit); }
         
-        /* TIMERS & CARDS - ACCENT BACKGROUND */
+        /* TIMERS & CARDS - V40 Default is Grey BG + Black Text */
         .timer-bubble { background: var(--block-color, #e0e0e0); color: var(--text-color, #37352F); padding: 15px; border-radius: var(--radius); text-align: center; } 
         .timer-display { font-size: 2.5em; font-weight: 700; font-family: monospace; margin: 10px 0;}
         .timer-btn { background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); padding: 5px 15px; border-radius: 20px; cursor: pointer; font-size: 0.8em; font-weight:600; color:inherit; }
@@ -76,7 +75,7 @@
         .spacer-line { width: 100%; border-bottom-color: var(--block-color, #37352F); opacity: 0.5; }
         .spacer-dashed { border-bottom-style: dashed; } .spacer-dotted { border-bottom-style: dotted; } .spacer-solid { border-bottom-style: solid; }
         
-        /* RESET BUTTON (Visible by default, hidden via JS if not needed) */
+        /* RESET BUTTON - PRE-RENDERED BUT HIDDEN */
         .cycle-reset-btn { 
             background: rgba(255,255,255,0.9); 
             border: 1px solid #ccc; 
@@ -91,7 +90,7 @@
             z-index: 100; 
             position: relative; 
             box-shadow: 0 1px 2px rgba(0,0,0,0.2); 
-            display: none; /* V39: Hidden by default, toggled in loop */
+            display: none; /* V40: Hidden initially */
         }
     </style>
 </head>
@@ -101,7 +100,7 @@
         function getConfig() { try { return JSON.parse(atob(window.location.hash.substring(1))); } catch(e) { return null; } }
         const container = document.getElementById('dashboard');
 
-        // --- GLOBAL HELPER (Must be first) ---
+        // --- GLOBAL HELPER ---
         function createBarElement(label, start, end, isCycle, cycleId) {
             let pct = 0;
             if(!isCycle && start && end) { 
@@ -111,14 +110,12 @@
             if(isNaN(pct)) pct = 0;
 
             const wrapper = document.createElement('div'); wrapper.className = 'progress-wrapper';
-            // V39: Inject style directly for fail-safe rendering of Fill Color
             const safeColor = 'var(--block-color, #37352F)';
             
-            // Cycle Reset Button (Built-in)
+            // V40: PRE-RENDER BUTTON
             let resetBtn = '';
             if(isCycle) {
-                // Pre-render the button, hidden via CSS
-                resetBtn = `<button id="reset-btn-${cycleId}" class="cycle-reset-btn" onclick="resetCycle('${cycleId}')">↻</button>`;
+                resetBtn = `<button id="reset-btn-${cycleId}" class="cycle-reset-btn" onclick="window.resetCycle('${cycleId}')">↻</button>`;
             }
 
             wrapper.innerHTML = `
@@ -131,6 +128,16 @@
                 </div>`;
             return wrapper;
         }
+
+        // V40: ENSURE GLOBAL SCOPE
+        window.resetCycle = (idx) => { 
+            const sIdx = String(idx);
+            if(sIdx && sIdx !== 'undefined' && sIdx !== 'null') {
+                localStorage.setItem(`cycle_reset_block-${sIdx}`, new Date().getTime()); 
+                const btn = document.getElementById(`reset-btn-${sIdx}`);
+                if(btn) btn.style.display = 'none';
+            }
+        };
 
         function render() {
             const data = getConfig();
@@ -180,8 +187,7 @@
                     if(!isNaN(s) && !isNaN(e)) div.appendChild(createBarElement(block.label, s, e, false, `custom-${index}`));
                 }
                 else if(block.type === 'progress_cycle') { 
-                    // Pass the index as ID so we can find the button later
-                    const wrap = createBarElement(block.label, null, null, true, index); 
+                    const wrap = createBarElement(block.label, null, null, true, index); // Passing index as ID
                     wrap.id=`cycle-wrap-${index}`; 
                     div.appendChild(wrap); 
                 }
@@ -370,7 +376,6 @@
                     } else { dates = getDatesForType(item.type, s.weekStart); }
                     
                     if(dates) {
-                        // V39 FIX: Pass a unique ID for this specific sub-bar
                         const uniqueId = `prog-${bIdx}-${iIdx}`;
                         parent.appendChild(createBarElement(item.label, dates.start, dates.end, false, uniqueId)); 
                     }
@@ -390,7 +395,7 @@
         function updateDynamics(blocks, settings) {
             const now = new Date(); const use24h = settings.use24h === true;
             blocks.forEach((block, bIdx) => {
-                // V39 UPDATE: Cycle needs robust ID handling
+                // V40: Logic for Cycle Updates
                 if (block.type === 'progress_cycle') {
                     const resetMode = block.resetMode || 'auto';
                     let anchor = new Date(block.anchor);
@@ -398,7 +403,7 @@
                         const restartTs = localStorage.getItem(`cycle_reset_block-${bIdx}`);
                         if(restartTs) anchor = new Date(parseInt(restartTs));
                     }
-                    if(isNaN(anchor.getTime())) anchor = new Date(); // Safety fallback
+                    if(isNaN(anchor.getTime())) anchor = new Date();
 
                     const days = parseFloat(block.days) || 1; 
                     const duration = days * 86400000;
@@ -414,9 +419,8 @@
                         }
                     }
                     
-                    // V39: Logic to toggle button display
                     const bar = document.querySelector(`#cycle-wrap-${bIdx} .progress-fill`);
-                    const txtSpan = document.querySelector(`#cycle-wrap-${bIdx} .progress-meta span:last-child span`); // The % text
+                    const txtSpan = document.querySelector(`#cycle-wrap-${bIdx} .progress-meta span:last-child span`); 
                     const btn = document.getElementById(`reset-btn-${bIdx}`);
                     
                     if(bar && txtSpan) { 
@@ -430,7 +434,34 @@
                         }
                     }
                 }
-                // ... (World Clock, Date, Sequence, Timer, Countdown same as V38) ...
+                
+                // V40: Logic for Auto Progress Updates
+                if (block.type === 'progress_group') {
+                    block.items.forEach((item, iIdx) => {
+                        const uniqueId = `prog-${bIdx}-${iIdx}`;
+                        const bar = document.querySelector(`#${uniqueId} .progress-fill`);
+                        const txt = document.querySelector(`#${uniqueId} .progress-meta span:last-child span`);
+                        if(bar && txt) {
+                            let dates;
+                            if(item.type === 'life') {
+                                const s = new Date(item.dob || '1990-01-01');
+                                const e = new Date(s); e.setFullYear(e.getFullYear() + parseInt(item.expectancy||80));
+                                dates = { start: s, end: e };
+                            } else { dates = getDatesForType(item.type, settings.weekStart); }
+                            
+                            if(dates) {
+                                let pct = 0;
+                                if(now > dates.end) pct = 100;
+                                else if(now > dates.start) pct = ((now - dates.start) / (dates.end - dates.start)) * 100;
+                                
+                                bar.style.width = `${pct}%`;
+                                txt.innerText = `${pct.toFixed(1)}%`;
+                            }
+                        }
+                    });
+                }
+
+                // ... (Other blocks V38 logic preserved)
                 if (block.type === 'world_clock') {
                     block.locations.forEach((loc, lIdx) => {
                         const timeEl = document.getElementById(`clock-${bIdx}-${lIdx}`);
@@ -490,7 +521,7 @@
             });
         }
         
-        // V39 FIX: STRING ID FOR RESET
+        // V40 FIX: STRING ID FOR RESET
         window.resetCycle = (idx) => { 
             const sIdx = String(idx);
             if(sIdx && sIdx !== 'undefined' && sIdx !== 'null') {
