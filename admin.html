@@ -2,513 +2,371 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Widget Admin V64</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Builder V63</title>
     <style>
         /* CORE */
         * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f7f7f5; color: #37352f; }
+        :root { --c-accent: #34495e; --bg-canvas: #f4f5f7; }
+        html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg-canvas); color: #37352f; overflow: hidden; }
         
-        /* DESKTOP LAYOUT (Default) */
-        .main-container { display: flex; flex-direction: row; width: 100%; height: 100vh; overflow: hidden; }
-        .panel-left { width: 50%; height: 100%; background: #fff; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; min-width: 460px; position: relative; }
-        .panel-right { width: 50%; height: 100%; background: #eef0f2; padding: 20px; display: flex; flex-direction: column; min-width: 320px; }
+        /* LAYOUT */
+        .app-container { display: flex; flex-direction: column; height: 100vh; }
         
-        /* HEADER */
-        .sticky-header { background: white; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; z-index: 100; display: flex; flex-direction: column; }
-        .header-top { padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; gap: 15px; background: #fff; z-index: 2; position: relative; }
-        .header-left { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
-        .header-title { font-size: 1.1rem; font-weight: 700; margin: 0; white-space: nowrap; }
-        .header-arrow { font-size: 0.8rem; color: #999; transition: transform 0.2s; }
-        .header-arrow.open { transform: rotate(180deg); }
-        .action-area { display: flex; gap: 8px; align-items: center; }
+        /* HEADER (Collapsible Panels) */
+        .app-header { background: #fff; border-bottom: 1px solid #ddd; z-index: 100; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .header-bar { padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; background: #fff; position: relative; z-index: 2; }
+        .header-title { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+        .header-title span { font-size: 0.8rem; color: #999; }
+        .header-actions { display: flex; gap: 8px; }
         
-        .link-panel { background: #f8f9fa; border-bottom: 1px solid #e0e0e0; overflow: hidden; max-height: 0; transition: max-height 0.3s ease-out; padding: 0 20px; }
-        .link-panel.open { max-height: 100px; padding: 15px 20px; }
-        .link-textarea { width: 100%; height: 60px; font-family: monospace; font-size: 0.75rem; color: #666; border: 1px solid #ddd; border-radius: 4px; padding: 8px; resize: none; background: #fff; }
+        .panel { background: #fafafa; border-bottom: 1px solid #eee; overflow: hidden; max-height: 0; transition: max-height 0.3s ease-out; padding: 0 20px; }
+        .panel.open { max-height: 300px; padding: 15px 20px; border-bottom: 1px solid #ddd; }
+        .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; }
         
-        .settings-toggle { padding: 10px 20px; background: #34495e; color: white; cursor: pointer; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 8px; user-select: none; transition: background 0.2s; }
-        .settings-toggle:hover { background: #2c3e50; }
-        .settings-panel { padding: 15px 20px; background: #fff; border-bottom: 1px solid #e0e0e0; display: none; }
-        .settings-panel.active { display: block; animation: slideDown 0.2s ease-out; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        button.btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: 600; font-size: 0.8rem; cursor: pointer; color: white; transition: opacity 0.2s; }
+        button.btn:hover { opacity: 0.9; }
+        .btn-blue { background: #3498db; } .btn-green { background: #27ae60; } .btn-grey { background: #7f8c8d; }
         
-        .global-settings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        /* CANVAS (The Editor) */
+        .canvas-area { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0; transition: background 0.3s; }
         
-        /* CONTENT SCROLLING (Desktop) */
-        .scroll-content { padding: 20px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
-        
-        /* FOOTER (Desktop) */
-        .fixed-footer { padding: 15px 20px; background: #fff; border-top: 1px solid #e0e0e0; flex-shrink: 0; z-index: 20; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); }
-        .footer-title { font-size: 0.7rem; font-weight: 700; color: #999; margin-bottom: 8px; letter-spacing: 0.5px; text-transform: uppercase; }
-        
-        /* PREVIEW */
-        .preview-wrapper { flex-grow: 1; background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ccc; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
-        .preview-toolbar { padding: 5px; background: #dfe1e6; border-bottom: 1px solid #ccc; display: flex; justify-content: center; align-items: center; height: 25px; flex-shrink: 0; }
-        iframe { flex-grow: 1; width: 100%; border: none; background: white; display: block; }
-
-        /* FORM ELEMENTS */
-        label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.75rem; color: #555;}
-        input, select { width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; box-sizing: border-box; background: #fff; }
-        
-        .btn-action { padding: 6px 10px; font-size: 0.75rem; color: white; border-radius: 4px; border:none; cursor: pointer; font-weight: 600; white-space: nowrap; flex-shrink: 0;}
-        .btn-refresh { background: #3498db; } .btn-copy { background: #27ae60; } .btn-open { background: #7f8c8d; }
-        
-        /* COLORS */
-        .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
-        button.menu-btn { padding: 8px 10px; border: none; border-radius: 4px; font-weight: 600; font-size: 0.75rem; cursor: pointer; flex-grow: 1; text-align: center; color: white !important; transition: transform 0.1s; }
-        button.menu-btn:hover { transform: translateY(-1px); opacity: 0.9; }
-        
-        .btn-header { background: #7f8c8d; } 
-        .btn-date { background: #16a085; } 
-        .btn-time { background: #27ae60; } 
-        .btn-grid { background: #6aa84f; } 
-        .btn-auto { background: #c0392b; } 
-        .btn-custom { background: #d35400; } 
-        .btn-cycle { background: #e67e22; } 
-        .btn-count { background: #f39c12; } 
-        .btn-timer { background: #8e44ad; } 
-        .btn-seq { background: #9b59b6; } 
-        .btn-cnt { background: #c90076; } 
-        .btn-moon { background: #34495e; } 
-        .btn-util { background: #95a5a6; } 
-
-        .block-card { background: white; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 0; border-left: 4px solid #999; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .block-header { padding: 10px 15px; cursor: pointer; display: flex; align-items: center; gap: 10px; background: #fbfbfa; user-select: none; border-bottom: 1px solid transparent; }
-        .block-header:hover { background: #f2f2f2; }
-        .block-title { font-weight: 700; font-size: 0.85rem; flex-grow: 1; text-transform: uppercase; color: #444; }
-        .block-label-preview { font-weight: 400; font-size: 0.85rem; color: #888; margin-left: 10px; text-transform: none; }
-        .block-content { padding: 15px; border-top: 1px solid #f0f0f0; display: none; }
-        .block-card.open .block-content { display: block; }
-        .btn-del { background: #fadbd8; color: #c0392b; border: 1px solid #e6b0aa; padding: 4px 8px; font-size: 0.7rem; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        
-        .sub-list { margin-bottom: 10px; border: 1px solid #eee; padding: 10px; border-radius: 4px; background: #fafafa; }
-        .sub-item { display: flex; gap: 5px; margin-bottom: 5px; align-items: center; padding-bottom: 5px; border-bottom: 1px solid #eee; }
-        .sub-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        .sub-btn-rem, .sub-btn-mov { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; cursor: pointer; border-radius: 4px; }
-        .sub-btn-rem { background: #fadbd8; color: #c0392b; border-color: #e6b0aa; font-weight: bold; }
-        .sub-btn-mov { background: #fff; color: #555; font-size: 0.7rem; }
-        .sub-btn-add { background: #e0e0e0; border: none; font-size: 0.7rem; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: 600; color: #555; }
-
-        .viz-controls { background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 15px; border: 1px solid #eee; }
-        .viz-row { display: flex; gap: 10px; align-items: flex-end; }
-        .row { display: flex; gap: 10px; margin-top: 10px; } .col { flex: 1; }
-
-        .city-search-wrapper { position: relative; flex: 1; }
-        .city-results { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; max-height: 150px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 0 0 4px 4px; }
-        .city-result-item { padding: 8px; cursor: pointer; font-size: 0.8rem; border-bottom: 1px solid #f0f0f0; }
-        .city-result-item:hover { background: #f0f0f0; }
-        
-        /* BORDERS */
-        .type-header { border-left-color: #7f8c8d; } 
-        .type-date_display { border-left-color: #16a085; }
-        .type-world_clock { border-left-color: #27ae60; } 
-        .type-visual_grid { border-left-color: #6aa84f; }
-        .type-progress_group { border-left-color: #c0392b; } 
-        .type-progress_custom { border-left-color: #d35400; }
-        .type-progress_cycle { border-left-color: #e67e22; } 
-        .type-countdown { border-left-color: #f39c12; }
-        .type-timer { border-left-color: #8e44ad; } 
-        .type-sequence { border-left-color: #9b59b6; }
-        .type-counter { border-left-color: #c90076; } 
-        .type-moon_phase { border-left-color: #34495e; }
-        .type-spacer { border-left-color: #95a5a6; } 
-        .type-empty { border-left-color: #95a5a6; }
-
-        /* V64: MOBILE RESPONSIVE PATCH */
-        @media (max-width: 768px) {
-            /* 1. Stack Vertical */
-            .main-container { flex-direction: column; height: auto; overflow: visible; }
-            html, body { height: auto; overflow-x: hidden; }
-
-            /* 2. Fix Widths */
-            .panel-left, .panel-right { width: 100% !important; min-width: 0 !important; height: auto; }
-            .panel-left { border-right: none; padding-bottom: 0; }
-            
-            /* 3. Allow Scrolling */
-            .scroll-content { overflow: visible; height: auto; padding-bottom: 20px; }
-            
-            /* 4. Sticky Header & Footer */
-            .sticky-header { position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-            .fixed-footer { position: sticky; bottom: 0; z-index: 100; border-top: 2px solid #e0e0e0; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); }
-            
-            /* 5. Preview Area */
-            .panel-right { height: 600px; padding: 10px; background: #eef0f2; border-top: 5px solid #ccc; }
-            
-            /* 6. Settings Grid */
-            .global-settings-grid { grid-template-columns: 1fr 1fr; }
+        /* BLOCK (Visual Item) */
+        .widget-block { 
+            position: relative; 
+            border: 2px dashed rgba(0,0,0,0.1); 
+            border-radius: 6px; 
+            background: #fff; 
+            margin: 5px; 
+            min-height: 60px; 
+            transition: all 0.2s; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            /* Sizing set by JS inline styles */
+            width: calc(100% - 10px); 
         }
+        .widget-block:hover { border-color: var(--c-accent); box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 10; }
+        .widget-block.dragging { opacity: 0.4; border-style: solid; transform: scale(0.95); }
+
+        /* EDIT CONTROLS (Only in Admin) */
+        .block-controls { 
+            position: absolute; top: 5px; right: 5px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; z-index: 20; 
+        }
+        .widget-block:hover .block-controls { opacity: 1; }
+        .ctrl-btn { width: 24px; height: 24px; border-radius: 4px; border: 1px solid #ccc; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .ctrl-btn:hover { background: #eee; }
+        .ctrl-del { color: #c0392b; border-color: #e6b0aa; background: #fadbd8; }
+        
+        .resize-handle {
+            position: absolute; top: 0; bottom: 0; right: -5px; width: 10px; cursor: col-resize; z-index: 30;
+        }
+        .resize-handle:hover { background: rgba(0,0,0,0.1); }
+
+        /* FOOTER (Sticky) */
+        .app-footer { background: #fff; border-top: 1px solid #ddd; padding: 10px 20px; flex-shrink: 0; z-index: 100; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); overflow-x: auto; }
+        .footer-label { font-size: 0.7rem; font-weight: 700; color: #999; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .footer-buttons { display: flex; gap: 8px; }
+        
+        /* BUTTON COLORS */
+        .add-btn { padding: 8px 12px; border: none; border-radius: 4px; font-weight: 600; font-size: 0.75rem; color: white; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+        .add-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+        /* Your Palette */
+        .c-text { background: #7f8c8d; } .c-date { background: #16a085; } .c-time { background: #27ae60; }
+        .c-grid { background: #6aa84f; } .c-auto { background: #c0392b; } .c-custom { background: #d35400; }
+        .c-cycle { background: #e67e22; } .c-count { background: #f39c12; } .c-timer { background: #8e44ad; }
+        .c-seq { background: #9b59b6; } .c-cnt { background: #c90076; } .c-moon { background: #34495e; }
+        .c-util { background: #95a5a6; }
+
+        /* MODAL */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+        .modal-card { background: white; width: 90%; max-width: 450px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-header { padding: 15px 20px; background: #f8f9fa; border-bottom: 1px solid #eee; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; max-height: 70vh; overflow-y: auto; }
+        .modal-footer { padding: 15px 20px; border-top: 1px solid #eee; text-align: right; background: #fff; }
+        
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.75rem; color: #666; margin-top: 12px; }
+        label:first-child { margin-top: 0; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
+        
+        /* CONTENT STYLES (Shared with Index) */
+        .widget-content { padding: 15px; height: 100%; display: flex; flex-direction: column; justify-content: center; color: var(--text-color, #37352f); }
+        .txt-lg { font-size: 1.5em; font-weight: 700; line-height: 1.1; }
+        .txt-sm { font-size: 0.85em; opacity: 0.7; }
     </style>
 </head>
 <body>
 
-<div class="main-container">
-    <div class="panel-left">
-        <div class="sticky-header">
-            <div class="header-top">
-                <div class="header-left" onclick="toggleLinkPanel()">
-                    <span class="header-arrow" id="header-arrow">▼</span>
-                    <h1 class="header-title">Widget Builder</h1>
-                </div>
-                <div class="action-area">
-                    <button class="btn-action btn-refresh" onclick="refreshPreview()">Refresh</button>
-                    <button class="btn-action btn-copy" id="btn-copy" onclick="copyLink()">Copy Link</button>
-                    <button class="btn-action btn-open" onclick="window.open(generateLink(), '_blank')">Open</button>
-                </div>
-            </div>
-            
-            <div class="link-panel" id="link-panel">
-                <textarea class="link-textarea" id="result-url" readonly onclick="this.select()"></textarea>
-            </div>
-
-            <div class="settings-toggle" onclick="toggleSettings()">
-                <span id="settings-arrow">▶</span>
-                <span>General Settings</span>
-            </div>
-            <div class="settings-panel" id="settings-panel">
-                <div class="global-settings-grid">
-                    <div><label>Time Format</label><select id="set-time" onchange="updateState()"><option value="12">12 Hour</option><option value="24">24 Hour</option></select></div>
-                    <div><label>Week Start</label><select id="set-week" onchange="updateState()"><option value="monday">Monday</option><option value="sunday">Sunday</option></select></div>
-                    <div><label>Theme</label><select id="set-theme" onchange="updateState()"><option value="standard">Standard</option><option value="minimal">Minimal</option><option value="card">Cards</option></select></div>
-                    <div><label>Font</label><select id="set-font" onchange="updateState()"><option value="sans">Sans-Serif</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></div>
-                    <div><label>Text Size</label><select id="set-size" onchange="updateState()"><option value="small">Small</option><option value="medium" selected>Medium</option><option value="large">Large</option></select></div>
-                    <div><label>Padding</label><select id="set-pad" onchange="updateState()"><option value="comfortable">Comfortable</option><option value="compact">Compact</option><option value="spacious">Spacious</option></select></div>
-                </div>
+<div class="app-container">
+    <div class="app-header">
+        <div class="header-bar">
+            <div class="header-title" onclick="togglePanel('link-panel')">Link Generator <span>▼</span></div>
+            <div class="header-actions">
+                <button class="btn btn-blue" onclick="refresh()">Refresh</button>
+                <button class="btn btn-green" onclick="copyLink()">Copy</button>
+                <button class="btn btn-grey" onclick="openLink()">Open</button>
             </div>
         </div>
-
-        <div class="scroll-content" id="scroll-container">
-            <label style="font-size:0.8rem; color:#999; font-weight:bold; letter-spacing:1px; margin-top:5px; display:block;">BLOCKS</label>
-            <div id="blocks-area"></div>
-            <div style="height: 80px;"></div>
+        <div id="link-panel" class="panel">
+            <input class="link-textarea" id="result-url" readonly onclick="this.select()">
         </div>
-
-        <div class="fixed-footer">
-            <div class="footer-title">ADD BLOCK</div>
-            <div class="btn-row">
-                <button class="menu-btn btn-header" onclick="addBlock('header')">Text</button>
-                <button class="menu-btn btn-date" onclick="addBlock('date_display')">Date</button>
-                <button class="menu-btn btn-time" onclick="addBlock('world_clock')">Time</button>
-                <button class="menu-btn btn-grid" onclick="addBlock('visual_grid')">Grid</button>
-                <button class="menu-btn btn-auto" onclick="addBlock('progress_group')">Auto Progress</button>
-                <button class="menu-btn btn-custom" onclick="addBlock('progress_custom')">Custom Progress</button>
-                <button class="menu-btn btn-cycle" onclick="addBlock('progress_cycle')">Cycle</button>
-                <button class="menu-btn btn-count" onclick="addBlock('countdown')">Countdown</button>
-                <button class="menu-btn btn-timer" onclick="addBlock('timer')">Timer</button>
-                <button class="menu-btn btn-seq" onclick="addBlock('sequence')">Sequence</button>
-                <button class="menu-btn btn-cnt" onclick="addBlock('counter')">Counter</button>
-                <button class="menu-btn btn-moon" onclick="addBlock('moon_phase')">Moon Phase</button>
-                <button class="menu-btn btn-util" onclick="addBlock('spacer')">Spacer</button>
-                <button class="menu-btn btn-util" onclick="addBlock('empty')">Empty Block</button>
+        
+        <div class="header-bar" style="border-top:1px solid #f0f0f0;">
+            <div class="header-title" onclick="togglePanel('settings-panel')">General Settings <span>▼</span></div>
+        </div>
+        <div id="settings-panel" class="panel">
+            <div class="panel-grid">
+                <div><label>Theme</label><select id="s-theme" onchange="updateGlobal()"><option value="standard">Standard</option><option value="card">Cards</option><option value="minimal">Minimal</option></select></div>
+                <div><label>Font</label><select id="s-font" onchange="updateGlobal()"><option value="sans">Sans-Serif</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></div>
+                <div><label>Padding</label><select id="s-pad" onchange="updateGlobal()"><option value="1rem">Normal</option><option value="0.5rem">Compact</option><option value="1.5rem">Spacious</option></select></div>
             </div>
         </div>
     </div>
 
-    <div class="panel-right">
-        <div class="preview-wrapper">
-            <div class="preview-toolbar"><span class="preview-label">Live Preview</span></div>
-            <iframe id="preview-frame" src=""></iframe>
+    <div class="canvas-area" id="canvas">
+        </div>
+
+    <div class="app-footer">
+        <div class="footer-label">Add Block</div>
+        <div class="footer-buttons">
+            <button class="add-btn c-text" onclick="addBlock('header')">Text</button>
+            <button class="add-btn c-date" onclick="addBlock('date_display')">Date</button>
+            <button class="add-btn c-time" onclick="addBlock('world_clock')">Time</button>
+            <button class="add-btn c-grid" onclick="addBlock('visual_grid')">Grid</button>
+            <button class="add-btn c-auto" onclick="addBlock('progress_group')">Auto Progress</button>
+            <button class="add-btn c-custom" onclick="addBlock('progress_custom')">Custom</button>
+            <button class="add-btn c-cycle" onclick="addBlock('progress_cycle')">Cycle</button>
+            <button class="add-btn c-count" onclick="addBlock('countdown')">Countdown</button>
+            <button class="add-btn c-timer" onclick="addBlock('timer')">Timer</button>
+            <button class="add-btn c-seq" onclick="addBlock('sequence')">Sequence</button>
+            <button class="add-btn c-cnt" onclick="addBlock('counter')">Counter</button>
+            <button class="add-btn c-moon" onclick="addBlock('moon_phase')">Moon Phase</button>
+            <button class="add-btn c-util" onclick="addBlock('spacer')">Spacer</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span id="modal-title">Settings</span>
+            <span style="cursor:pointer" onclick="closeModal(null, true)">✕</span>
+        </div>
+        <div class="modal-body" id="modal-content">
+            </div>
+        <div class="modal-footer">
+            <button class="btn btn-blue" onclick="saveModal()">Done</button>
         </div>
     </div>
 </div>
 
 <script>
-    let settings = { use24h: false, weekStart: 'monday', theme: 'standard', textSize: 'medium', padding:'comfortable' };
+    let settings = { theme: 'standard', font: 'sans', padding: '1rem' };
     let blocks = [];
-    
-    // CITY DATABASE
-    const cityDB = [
-{name:"Abidjan",tz:"Africa/Abidjan"},{name:"Abu Dhabi",tz:"Asia/Dubai"},{name:"Abuja",tz:"Africa/Lagos"},{name:"Accra",tz:"Africa/Accra"},{name:"Adak",tz:"America/Adak"},{name:"Adamstown",tz:"Pacific/Pitcairn"},{name:"Addis Ababa",tz:"Africa/Addis_Ababa"},{name:"Adelaide",tz:"Australia/Adelaide"},{name:"Alert",tz:"America/Iqaluit"},{name:"Algiers",tz:"Africa/Algiers"},{name:"Alice Springs",tz:"Australia/Darwin"},{name:"Almaty",tz:"Asia/Almaty"},{name:"Alofi",tz:"Pacific/Niue"},{name:"Amman",tz:"Asia/Amman"},{name:"Amsterdam",tz:"Europe/Amsterdam"},{name:"Amsterdam Island",tz:"Indian/Kerguelen"},{name:"Anadyr",tz:"Asia/Anadyr"},{name:"Anchorage",tz:"America/Anchorage"},{name:"Ankara",tz:"Europe/Istanbul"},{name:"Antananarivo",tz:"Indian/Antananarivo"},{name:"Apia",tz:"Pacific/Apia"},{name:"Ashgabat",tz:"Asia/Ashgabat"},{name:"Asmara",tz:"Africa/Asmara"},{name:"Astana",tz:"Asia/Almaty"},{name:"Asuncion",tz:"America/Asuncion"},{name:"Athens",tz:"Europe/Athens"},{name:"Atlanta",tz:"America/New_York"},{name:"Auckland",tz:"Pacific/Auckland"},{name:"Austin",tz:"America/Chicago"},{name:"Baghdad",tz:"Asia/Baghdad"},{name:"Baker Island",tz:"Etc/GMT+12"},{name:"Baker Lake",tz:"America/Rankin_Inlet"},{name:"Baku",tz:"Asia/Baku"},{name:"Bamako",tz:"Africa/Bamako"},{name:"Bandar Seri Begawan",tz:"Asia/Brunei"},{name:"Bangkok",tz:"Asia/Bangkok"},{name:"Bangui",tz:"Africa/Bangui"},{name:"Banjul",tz:"Africa/Banjul"},{name:"Barcelona",tz:"Europe/Madrid"},{name:"Basse-Terre",tz:"America/Guadeloupe"},{name:"Beijing",tz:"Asia/Shanghai"},{name:"Beirut",tz:"Asia/Beirut"},{name:"Belém",tz:"America/Belem"},{name:"Belgrade",tz:"Europe/Belgrade"},{name:"Belfast",tz:"Europe/Belfast"},{name:"Belmopan",tz:"America/Belize"},{name:"Belushya Guba",tz:"Europe/Moscow"},{name:"Bengaluru",tz:"Asia/Kolkata"},{name:"Berlin",tz:"Europe/Berlin"},{name:"Bern",tz:"Europe/Zurich"},{name:"Bishkek",tz:"Asia/Bishkek"},{name:"Bissau",tz:"Africa/Bissau"},{name:"Bogota",tz:"America/Bogota"},{name:"Boston",tz:"America/New_York"},{name:"Brasilia",tz:"America/Sao_Paulo"},{name:"Bratislava",tz:"Europe/Bratislava"},{name:"Brazzaville",tz:"Africa/Brazzaville"},{name:"Bridgetown",tz:"America/Barbados"},{name:"Brisbane",tz:"Australia/Brisbane"},{name:"Brussels",tz:"Europe/Brussels"},{name:"Bucharest",tz:"Europe/Bucharest"},{name:"Budapest",tz:"Europe/Budapest"},{name:"Buenos Aires",tz:"America/Argentina/Buenos_Aires"},{name:"Bujumbura",tz:"Africa/Bujumbura"},{name:"Cairns",tz:"Australia/Brisbane"},{name:"Cairo",tz:"Africa/Cairo"},{name:"Calgary",tz:"America/Edmonton"},{name:"Canberra",tz:"Australia/Sydney"},{name:"Cancún",tz:"America/Cancun"},{name:"Cape Town",tz:"Africa/Johannesburg"},{name:"Caracas",tz:"America/Caracas"},{name:"Cardiff",tz:"Europe/London"},{name:"Casablanca",tz:"Africa/Casablanca"},{name:"Cayenne",tz:"America/Cayenne"},{name:"Chatham Islands",tz:"Pacific/Chatham"},{name:"Chennai",tz:"Asia/Kolkata"},{name:"Chibougamau",tz:"America/Toronto"},{name:"Chicago",tz:"America/Chicago"},{name:"Chișinău",tz:"Europe/Chisinau"},{name:"Chita",tz:"Asia/Chita"},{name:"Chongqing",tz:"Asia/Chongqing"},{name:"Ciudad de la Paz",tz:"Africa/Malabo"},{name:"Conakry",tz:"Africa/Conakry"},{name:"Copenhagen",tz:"Europe/Copenhagen"},{name:"Coral Harbour",tz:"America/Atikokan"},{name:"Córdoba",tz:"America/Argentina/Cordoba"},{name:"Dakar",tz:"Africa/Dakar"},{name:"Dallas",tz:"America/Chicago"},{name:"Damascus",tz:"Asia/Damascus"},{name:"Danmarkshavn",tz:"America/Danmarkshavn"},{name:"Dar es Salaam",tz:"Africa/Dar_es_Salaam"},{name:"Darwin",tz:"Australia/Darwin"},{name:"Denpasar",tz:"Asia/Makassar"},{name:"Denver",tz:"America/Denver"},{name:"Detroit",tz:"America/Detroit"},{name:"Dhaka",tz:"Asia/Dhaka"},{name:"Diego Garcia",tz:"Indian/Chagos"},{name:"Dili",tz:"Asia/Dili"},{name:"Djibouti",tz:"Africa/Djibouti"},{name:"Dnipro",tz:"Europe/Kyiv"},{name:"Dodoma",tz:"Africa/Dar_es_Salaam"},{name:"Doha",tz:"Asia/Qatar"},{name:"Douglas",tz:"Europe/Isle_of_Man"},{name:"Dubai",tz:"Asia/Dubai"},{name:"Dublin",tz:"Europe/Dublin"},{name:"Dushanbe",tz:"Asia/Dushanbe"},{name:"Easter Island",tz:"Pacific/Easter"},{name:"Edinburgh",tz:"Europe/London"},{name:"Edmonton",tz:"America/Edmonton"},{name:"El Aaiún",tz:"Africa/El_Aaiun"},{name:"Eucla",tz:"Australia/Eucla"},{name:"Eureka",tz:"America/Winnipeg"},{name:"Fairbanks",tz:"America/Anchorage"},{name:"Fakaofo",tz:"Pacific/Fakaofo"},{name:"Fortaleza",tz:"America/Fortaleza"},{name:"Frankfurt",tz:"Europe/Berlin"},{name:"Freetown",tz:"Africa/Freetown"},{name:"Funafuti",tz:"Pacific/Funafuti"},{name:"Gaborone",tz:"Africa/Gaborone"},{name:"Galapagos Islands",tz:"Pacific/Galapagos"},{name:"Georgetown",tz:"America/Guyana"},{name:"Gibraltar",tz:"Europe/Gibraltar"},{name:"Gitega",tz:"Africa/Bujumbura"},{name:"Glasgow",tz:"Europe/London"},{name:"Grise Fiord",tz:"America/Iqaluit"},{name:"Guatemala City",tz:"America/Guatemala"},{name:"Hagåtña",tz:"Pacific/Guam"},{name:"Halifax",tz:"America/Halifax"},{name:"Hamilton",tz:"America/Toronto"},{name:"Hanoi",tz:"Asia/Ho_Chi_Minh"},{name:"Happy Valley-Goose Bay",tz:"America/Goose_Bay"},{name:"Harare",tz:"Africa/Harare"},{name:"Havana",tz:"America/Havana"},{name:"Helsinki",tz:"Europe/Helsinki"},{name:"Hermosillo",tz:"America/Hermosillo"},{name:"Hobart",tz:"Australia/Hobart"},{name:"Hong Kong",tz:"Asia/Hong_Kong"},{name:"Honiara",tz:"Pacific/Guadalcanal"},{name:"Honolulu",tz:"Pacific/Honolulu"},{name:"Houston",tz:"America/Chicago"},{name:"Hovd",tz:"Asia/Hovd"},{name:"Indianapolis",tz:"America/Indiana/Indianapolis"},{name:"Inuvik",tz:"America/Inuvik"},{name:"Irkutsk",tz:"Asia/Irkutsk"},{name:"Islamabad",tz:"Asia/Karachi"},{name:"Istanbul",tz:"Europe/Istanbul"},{name:"Ittoqqortoormiit",tz:"America/Scoresbysund"},{name:"Izhevsk",tz:"Europe/Samara"},{name:"Jakarta",tz:"Asia/Jakarta"},{name:"Jamestown",tz:"Atlantic/St_Helena"},{name:"Jerusalem",tz:"Asia/Jerusalem"},{name:"Johannesburg",tz:"Africa/Johannesburg"},{name:"Juba",tz:"Africa/Juba"},{name:"Juneau",tz:"America/Juneau"},{name:"Kabul",tz:"Asia/Kabul"},{name:"Kaliningrad",tz:"Europe/Kaliningrad"},{name:"Kampala",tz:"Africa/Kampala"},{name:"Kangerlussuaq",tz:"America/Nuuk"},{name:"Kansas City",tz:"America/Chicago"},{name:"Karachi",tz:"Asia/Karachi"},{name:"Kathmandu",tz:"Asia/Kathmandu"},{name:"Kemi",tz:"Europe/Helsinki"},{name:"Khartoum",tz:"Africa/Khartoum"},{name:"Khatanga",tz:"Asia/Krasnoyarsk"},{name:"Kigali",tz:"Africa/Kigali"},{name:"King Edward Point",tz:"Atlantic/South_Georgia"},{name:"Kingston",tz:"America/Jamaica"},{name:"Kinshasa",tz:"Africa/Kinshasa"},{name:"Kiritimati",tz:"Pacific/Kiritimati"},{name:"Kolkata",tz:"Asia/Kolkata"},{name:"Komsomolsk-on-Amur",tz:"Asia/Vladivostok"},{name:"Krasnoyarsk",tz:"Asia/Krasnoyarsk"},{name:"Kuala Lumpur",tz:"Asia/Kuala_Lumpur"},{name:"Kuujjuaq",tz:"America/Iqaluit"},{name:"Kuwait City",tz:"Asia/Kuwait"},{name:"Kyiv",tz:"Europe/Kyiv"},{name:"La Paz",tz:"America/La_Paz"},{name:"Lagos",tz:"Africa/Lagos"},{name:"Lahore",tz:"Asia/Karachi"},{name:"Las Vegas",tz:"America/Los_Angeles"},{name:"Lhasa",tz:"Asia/Shanghai"},{name:"Libreville",tz:"Africa/Libreville"},{name:"Lilongwe",tz:"Africa/Blantyre"},{name:"Lima",tz:"America/Lima"},{name:"Lisbon",tz:"Europe/Lisbon"},{name:"Ljubljana",tz:"Europe/Ljubljana"},{name:"Lomé",tz:"Africa/Lome"},{name:"London",tz:"Europe/London"},{name:"Longyearbyen",tz:"Arctic/Longyearbyen"},{name:"Los Angeles",tz:"America/Los_Angeles"},{name:"Luanda",tz:"Africa/Luanda"},{name:"Lubumbashi",tz:"Africa/Lubumbashi"},{name:"Lusaka",tz:"Africa/Lusaka"},{name:"Luxembourg",tz:"Europe/Luxembourg"},{name:"Madrid",tz:"Europe/Madrid"},{name:"Magadan",tz:"Asia/Magadan"},{name:"Majuro",tz:"Pacific/Majuro"},{name:"Makassar",tz:"Asia/Makassar"},{name:"Malabo",tz:"Africa/Malabo"},{name:"Male",tz:"Indian/Maldives"},{name:"Managua",tz:"America/Managua"},{name:"Manama",tz:"Asia/Bahrain"},{name:"Manaus",tz:"America/Manaus"},{name:"Manila",tz:"Asia/Manila"},{name:"Manokwari",tz:"Asia/Jayapura"},{name:"Maputo",tz:"Africa/Maputo"},{name:"Marion Island",tz:"Indian/Antananarivo"},{name:"Mary's Harbour",tz:"America/St_Johns"},{name:"Maseru",tz:"Africa/Maseru"},{name:"Mbabane",tz:"Africa/Mbabane"},{name:"Melbourne",tz:"Australia/Melbourne"},{name:"Mexico City",tz:"America/Mexico_City"},{name:"Miami",tz:"America/New_York"},{name:"Midway",tz:"Pacific/Midway"},{name:"Minneapolis",tz:"America/Chicago"},{name:"Minsk",tz:"Europe/Minsk"},{name:"Mogadishu",tz:"Africa/Mogadishu"},{name:"Monaco",tz:"Europe/Monaco"},{name:"Monrovia",tz:"Africa/Monrovia"},{name:"Montevideo",tz:"America/Montevideo"},{name:"Montréal",tz:"America/Toronto"},{name:"Moroni",tz:"Indian/Comoro"},{name:"Moscow",tz:"Europe/Moscow"},{name:"Mumbai",tz:"Asia/Kolkata"},{name:"Muscat",tz:"Asia/Muscat"},{name:"Nairobi",tz:"Africa/Nairobi"},{name:"Nassau",tz:"America/Nassau"},{name:"Naypyidaw",tz:"Asia/Yangon"},{name:"N'Djamena",tz:"Africa/Ndjamena"},{name:"New Delhi",tz:"Asia/Kolkata"},{name:"New Orleans",tz:"America/Chicago"},{name:"New York",tz:"America/New_York"},{name:"Ngerulmud",tz:"Pacific/Palau"},{name:"Niamey",tz:"Africa/Niamey"},{name:"Nicosia",tz:"Asia/Nicosia"},{name:"Norilsk",tz:"Asia/Krasnoyarsk"},{name:"Nouakchott",tz:"Africa/Nouakchott"},{name:"Novosibirsk",tz:"Asia/Novosibirsk"},{name:"Nuku'alofa",tz:"Pacific/Tongatapu"},{name:"Nusantara",tz:"Asia/Makassar"},{name:"Nuuk",tz:"America/Nuuk"},{name:"Oklahoma City",tz:"America/Chicago"},{name:"Omsk",tz:"Asia/Omsk"},{name:"Oral",tz:"Asia/Oral"},{name:"Oslo",tz:"Europe/Oslo"},{name:"Ottawa",tz:"America/Toronto"},{name:"Ouagadougou",tz:"Africa/Ouagadougou"},{name:"Palikir",tz:"Pacific/Pohnpei"},{name:"Panama",tz:"America/Panama"},{name:"Papeete",tz:"Pacific/Tahiti"},{name:"Paramaribo",tz:"America/Paramaribo"},{name:"Paris",tz:"Europe/Paris"},{name:"Perth",tz:"Australia/Perth"},{name:"Petropavlovsk-Kamchatsky",tz:"Asia/Kamchatka"},{name:"Pevek",tz:"Asia/Srednekolymsk"},{name:"Philadelphia",tz:"America/New_York"},{name:"Phnom Penh",tz:"Asia/Phnom_Penh"},{name:"Phoenix",tz:"America/Phoenix"},{name:"Pituffik",tz:"America/Thule"},{name:"Podgorica",tz:"Europe/Podgorica"},{name:"Pond Inlet",tz:"America/Iqaluit"},{name:"Ponta Delgada",tz:"Atlantic/Azores"},{name:"Pontianak",tz:"Asia/Pontianak"},{name:"Port Louis",tz:"Indian/Mauritius"},{name:"Port Moresby",tz:"Pacific/Port_Moresby"},{name:"Port of Spain",tz:"America/Port_of_Spain"},{name:"Port Vila",tz:"Pacific/Efate"},{name:"Port-au-Prince",tz:"America/Port-au-Prince"},{name:"Port-aux-Francais",tz:"Indian/Kerguelen"},{name:"Porto Novo",tz:"Africa/Porto-Novo"},{name:"Prague",tz:"Europe/Prague"},{name:"Praia",tz:"Atlantic/Cape_Verde"},{name:"Pretoria",tz:"Africa/Johannesburg"},{name:"Pune",tz:"Asia/Kolkata"},{name:"Punta Arenas",tz:"America/Punta_Arenas"},{name:"Pyongyang",tz:"Asia/Pyongyang"},{name:"Qaanaaq",tz:"America/Thule"},{name:"Quito",tz:"America/Guayaquil"},{name:"Rabat",tz:"Africa/Casablanca"},{name:"Rarotonga",tz:"Pacific/Rarotonga"},{name:"Regina",tz:"America/Regina"},{name:"Resolute Bay",tz:"America/Resolute"},{name:"Reykjavik",tz:"Atlantic/Reykjavik"},{name:"Riga",tz:"Europe/Riga"},{name:"Rio Branco",tz:"America/Rio_Branco"},{name:"Rio de Janeiro",tz:"America/Sao_Paulo"},{name:"Riyadh",tz:"Asia/Riyadh"},{name:"Rome",tz:"Europe/Rome"},{name:"Rovaniemi",tz:"Europe/Helsinki"},{name:"Saint-Denis",tz:"Indian/Reunion"},{name:"Salt Lake City",tz:"America/Denver"},{name:"Samara",tz:"Europe/Samara"},{name:"San Francisco",tz:"America/Los_Angeles"},{name:"San Jose",tz:"America/Los_Angeles"},{name:"San Juan",tz:"America/Puerto_Rico"},{name:"San Salvador",tz:"America/El_Salvador"},{name:"Sana",tz:"Asia/Aden"},{name:"Santiago",tz:"America/Santiago"},{name:"Santo Domingo",tz:"America/Santo_Domingo"},{name:"São Paulo",tz:"America/Sao_Paulo"},{name:"São Tomé",tz:"Africa/Sao_Tome"},{name:"Sarajevo",tz:"Europe/Sarajevo"},{name:"Seattle",tz:"America/Los_Angeles"},{name:"Seoul",tz:"Asia/Seoul"},{name:"Shanghai",tz:"Asia/Shanghai"},{name:"Singapore",tz:"Asia/Singapore"},{name:"Skopje",tz:"Europe/Skopje"},{name:"Sofia",tz:"Europe/Sofia"},{name:"Srednekolymsk",tz:"Asia/Srednekolymsk"},{name:"Sri Jayawardenepura Kotte",tz:"Asia/Colombo"},{name:"St. John's",tz:"America/St_Johns"},{name:"Stanley",tz:"Atlantic/Stanley"},{name:"Stockholm",tz:"Europe/Stockholm"},{name:"Sucre",tz:"America/La_Paz"},{name:"Suva",tz:"Pacific/Fiji"},{name:"Sydney",tz:"Australia/Sydney"},{name:"Taipei",tz:"Asia/Taipei"},{name:"Tallinn",tz:"Europe/Tallinn"},{name:"Tarawa",tz:"Pacific/Tarawa"},{name:"Tashkent",tz:"Asia/Tashkent"},{name:"Tbilisi",tz:"Asia/Tbilisi"},{name:"Tegucigalpa",tz:"America/Tegucigalpa"},{name:"Tehran",tz:"Asia/Tehran"},{name:"Tel Aviv",tz:"Asia/Jerusalem"},{name:"Thimphu",tz:"Asia/Thimphu"},{name:"Tiksi",tz:"Asia/Yakutsk"},{name:"Timbuktu",tz:"Africa/Bamako"},{name:"Tirana",tz:"Europe/Tirana"},{name:"Tokyo",tz:"Asia/Tokyo"},{name:"Toronto",tz:"America/Toronto"},{name:"Tórshavn",tz:"Atlantic/Faroe"},{name:"Tripoli",tz:"Africa/Tripoli"},{name:"Tromsø",tz:"Europe/Oslo"},{name:"Tunis",tz:"Africa/Tunis"},{name:"Ulaanbaatar",tz:"Asia/Ulaanbaatar"},{name:"Unalaska",tz:"America/Adak"},{name:"Ürümqi",tz:"Asia/Urumqi"},{name:"Valletta",tz:"Europe/Malta"},{name:"Vancouver",tz:"America/Vancouver"},{name:"Vatican City",tz:"Europe/Vatican"},{name:"Verkhoyansk",tz:"Asia/Vladivostok"},{name:"Victoria",tz:"Indian/Mahe"},{name:"Vienna",tz:"Europe/Vienna"},{name:"Vientiane",tz:"Asia/Vientiane"},{name:"Vilnius",tz:"Europe/Vilnius"},{name:"Vladivostok",tz:"Asia/Vladivostok"},{name:"Wake Island",tz:"Pacific/Wake"},{name:"Warsaw",tz:"Europe/Warsaw"},{name:"Washington DC",tz:"America/New_York"},{name:"Wellington",tz:"Pacific/Auckland"},{name:"Whitehorse",tz:"America/Whitehorse"},{name:"Windhoek",tz:"Africa/Windhoek"},{name:"Winnipeg",tz:"America/Winnipeg"},{name:"Yakutsk",tz:"Asia/Yakutsk"},{name:"Yamoussoukro",tz:"Africa/Abidjan"},{name:"Yangon",tz:"Asia/Yangon"},{name:"Yaoundé",tz:"Africa/Douala"},{name:"Yaren",tz:"Pacific/Nauru"},{name:"Yekaterinburg",tz:"Asia/Yekaterinburg"},{name:"Yerevan",tz:"Asia/Yerevan"},{name:"Yuzhno-Sakhalinsk",tz:"Asia/Sakhalin"},{name:"Zagreb",tz:"Europe/Zagreb"},{name:"Zürich",tz:"Europe/Zurich"}
-    ];
+    let editingIndex = -1;
 
-    const dateTokens = [
-        {val: 'day_name_full', txt: 'Day Name (Monday)'}, {val: 'day_name_short', txt: 'Day (Mon)'},
-        {val: 'date_num', txt: 'Date (28)'}, {val: 'month_full', txt: 'Month Name'},
-        {val: 'month_short', txt: 'Month (Jan)'}, {val: 'month_num', txt: 'Month (01)'},
-        {val: 'year', txt: 'Year'}, {val: 'week_num', txt: 'Week #'},
-        {val: 'day_year', txt: 'Day of Year'}, {val: 'quarter', txt: 'Quarter'},
-        {val: 'separator', txt: 'Separator (|)'}, {val: 'space', txt: 'Space'}, {val: 'slash', txt: '/'}
-    ];
-    
-    // V59: COLOR PALETTE (NAMED)
-    const colorPalette = [
-        {val:'default', hex:'#000000', name:'Default (Black)'},
-        {val:'5b5b5b', hex:'#5b5b5b', name:'Dark Grey'},
-        {val:'7f8c8d', hex:'#7f8c8d', name:'Grey'},
-        {val:'bcbcbc', hex:'#bcbcbc', name:'Light Grey'},
-        {val:'cc0000', hex:'#cc0000', name:'Dark Red'},
-        {val:'fa2c1c', hex:'#fa2c1c', name:'Red'},
-        {val:'d35400', hex:'#d35400', name:'Pumpkin'},
-        {val:'e67e22', hex:'#e67e22', name:'Orange'},
-        {val:'f37736', hex:'#f37736', name:'Light Orange'},
-        {val:'f39c12', hex:'#f39c12', name:'Yellow Orange'},
-        {val:'ffd700', hex:'#ffd700', name:'Gold'},
-        {val:'ffe000', hex:'#ffe000', name:'Bright Yellow'},
-        {val:'8fce00', hex:'#8fce00', name:'Lime'},
-        {val:'6aa84f', hex:'#6aa84f', name:'Medium Green'},
-        {val:'27ae60', hex:'#27ae60', name:'Green'},
-        {val:'38761d', hex:'#38761d', name:'Forest Green'},
-        {val:'16a085', hex:'#16a085', name:'Teal'},
-        {val:'00ffff', hex:'#00ffff', name:'Cyan'},
-        {val:'3498db', hex:'#3498db', name:'Sky Blue'},
-        {val:'2980b9', hex:'#2980b9', name:'Blue'},
-        {val:'16537e', hex:'#16537e', name:'Dark Blue'},
-        {val:'34495e', hex:'#34495e', name:'Navy'},
-        {val:'8e44ad', hex:'#8e44ad', name:'Purple'},
-        {val:'800080', hex:'#800080', name:'Dark Purple'},
-        {val:'c90076', hex:'#c90076', name:'Magenta'},
-        {val:'ffb6c1', hex:'#ffb6c1', name:'Pink'},
-        {val:'b45f06', hex:'#b45f06', name:'Brown'},
-        {val:'783f04', hex:'#783f04', name:'Dark Brown'}
-    ];
+    // --- ENCODING ---
+    function encode(obj) { return window.btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
+    function decode(str) { try { return JSON.parse(decodeURIComponent(escape(window.atob(str)))); } catch(e) { return null; } }
 
-    // V59: STABLE ENCODING (Native OS Emoji Support)
-    function utf8_to_b64(str) { return window.btoa(unescape(encodeURIComponent(str))); }
-    function b64_to_utf8(str) { try { return decodeURIComponent(escape(window.atob(str))); } catch(e) { return window.atob(str); } }
-
-    function generateLink() { 
-        const json = JSON.stringify({ settings, blocks }); 
-        const encoded = utf8_to_b64(json); 
-        let url = window.location.href.split('#')[0].split('?')[0]; 
-        if(url.endsWith('admin.html')) url = url.substring(0, url.lastIndexOf('/')); 
-        if(url.endsWith('/')) url = url.slice(0, -1); 
-        const final = `${url}/index.html#${encoded}`; 
-        document.getElementById('result-url').value = final; 
-        return final; 
-    }
-
+    // --- INIT ---
     function init() {
-        try {
-            const hash = window.location.hash.substring(1);
-            if(hash) {
-                // Try robust decode
-                const data = JSON.parse(b64_to_utf8(hash));
+        const hash = window.location.hash.substring(1);
+        if(hash) {
+            const data = decode(hash);
+            if(data) {
                 settings = data.settings || settings;
                 blocks = data.blocks || blocks;
-                
-                // Backfill IDs
-                let dirty = false;
-                blocks.forEach(b => { if(!b.id) { b.id = 'blk_' + Math.random().toString(36).substr(2, 9); dirty = true; } });
-                if(dirty) refreshPreview();
-
-                document.getElementById('set-time').value = settings.use24h ? '24' : '12';
-                document.getElementById('set-week').value = settings.weekStart || 'monday';
-                document.getElementById('set-theme').value = settings.theme || 'standard';
-                document.getElementById('set-font').value = settings.font || 'sans';
-                document.getElementById('set-size').value = settings.textSize || 'medium';
-                document.getElementById('set-pad').value = settings.padding || 'comfortable';
-            } else { blocks = [{ type: 'header', text: 'Welcome', id: 'blk_welcome' }]; }
-        } catch(e) {}
-        renderBlocks();
-        setTimeout(refreshPreview, 1000);
+            }
+        } else {
+            blocks = [{type: 'header', text: 'Welcome', width: '100', id: 'blk_1'}];
+        }
+        
+        // Sync Inputs
+        document.getElementById('s-theme').value = settings.theme;
+        document.getElementById('s-font').value = settings.font;
+        document.getElementById('s-pad').value = settings.padding;
+        
+        render();
+        updateLink();
     }
 
-    window.refreshPreview = () => {
-        const json = JSON.stringify({ settings, blocks });
-        const encoded = utf8_to_b64(json);
-        const parts = window.location.href.split('#');
-        let baseUrl = parts[0];
-        if(baseUrl.includes('admin.html')) baseUrl = baseUrl.replace('admin.html', 'index.html');
-        else if(baseUrl.endsWith('/')) baseUrl += 'index.html';
-        else baseUrl += '/index.html';
-        
-        // Pass "preview=true" to hide edit pencil inside Admin
-        const url = `${baseUrl}?preview=true&t=${Date.now()}#${encoded}`;
-        
-        // Clean URL for user to copy
-        document.getElementById('result-url').value = `${baseUrl}#${encoded}`;
-        document.getElementById('preview-frame').src = url;
-        
-        // Update Admin Hash without reloading
-        window.history.replaceState(null, null, `#${encoded}`);
-    };
-
-    window.updateState = () => {
-        settings.use24h = document.getElementById('set-time').value === '24';
-        settings.weekStart = document.getElementById('set-week').value;
-        settings.theme = document.getElementById('set-theme').value;
-        settings.font = document.getElementById('set-font').value;
-        settings.textSize = document.getElementById('set-size').value;
-        settings.padding = document.getElementById('set-pad').value;
-        refreshPreview();
-    };
-
-    window.toggleSettings = () => {
-        const panel = document.getElementById('settings-panel');
-        const arrow = document.getElementById('settings-arrow');
-        if(panel.classList.contains('active')) {
-            panel.classList.remove('active');
-            arrow.innerHTML = '▶';
-        } else {
-            panel.classList.add('active');
-            arrow.innerHTML = '▼';
-        }
-    };
-    
-    window.toggleLinkPanel = () => {
-        const panel = document.getElementById('link-panel');
-        const arrow = document.getElementById('header-arrow');
-        if(panel.classList.contains('open')) {
-            panel.classList.remove('open');
-            arrow.classList.remove('open');
-        } else {
-            panel.classList.add('open');
-            arrow.classList.add('open');
-        }
-    };
-    
-    window.copyLink = () => {
-        const urlField = document.getElementById('result-url');
-        urlField.select();
-        navigator.clipboard.writeText(urlField.value).then(() => {
-            const btn = document.getElementById('btn-copy'); 
-            btn.innerText = "COPIED!"; 
-            setTimeout(() => btn.innerText = "Copy Link", 1000);
-        });
-    };
-
-    window.updateBlock = (i, k, v) => { 
-        blocks[i][k] = v; 
-        if(k === 'label' || k === 'text') {
-            const headerTitle = document.querySelector(`.block-card[data-index="${i}"] .block-label-preview`);
-            if(headerTitle) headerTitle.innerText = v;
-        }
-        if(k === 'gridType' || k === 'color' || k === 'textColor') { renderBlocks(true, i); }
-        updateState(); 
-    };
-    
-    window.updateSubItem = (bI, k, iI, f, v) => { blocks[bI][k][iI][f] = v; updateState(); };
-    window.addSubItem = (bI, k) => { if(k==='locations') blocks[bI][k].push({label:'', timezone:''}); if(k==='items') blocks[bI][k].push({label:'New Bar', type:'month'}); if(k==='steps') blocks[bI][k].push({label:'Step', duration:5}); renderBlocks(true, bI); updateState(); };
-    window.addDateItem = (bI, key) => { if(!blocks[bI][key]) blocks[bI][key] = []; blocks[bI][key].push('space'); renderBlocks(true, bI); updateState(); };
-    window.removeSubItem = (bI, k, iI) => { blocks[bI][k].splice(iI, 1); renderBlocks(true, bI); updateState(); };
-    window.moveItem = (bI, k, iI, dir) => { const arr = blocks[bI][k]; if (iI + dir >= 0 && iI + dir < arr.length) { [arr[iI], arr[iI + dir]] = [arr[iI + dir], arr[iI]]; renderBlocks(true, bI); updateState(); } };
-
-    window.addBlock = (t) => {
-        let b = { type: t, width: '100', id: 'blk_' + Math.random().toString(36).substr(2, 9) };
-        if(t=='header') b.text='Title';
-        if(t=='world_clock') b.locations=[{label:'London',timezone:'Europe/London', _searchVal:'London'}];
-        if(t=='date_display') { b.line1=['day_name_full', 'space', 'date_num']; b.line2=['month_full', 'space', 'year']; }
-        if(t=='progress_group') b.items = [{type:'life', label:'Life', visible:true, dob:'1990-01-01', expectancy:85},{type:'year', label:'Year', visible:true},{type:'quarter', label:'Quarter', visible:true},{type:'month', label:'Month', visible:true},{type:'week', label:'Week', visible:true},{type:'day', label:'Day', visible:true}];
-        if(t=='visual_grid') { b.gridType='year'; b.blockSize='12px'; b.shape='square'; b.dob='1990-01-01'; b.expectancy=80; }
-        if(t=='moon_phase') { b.showIcon=true; b.showPhase=true; b.showAge=true; b.showName=true; }
-        if(t=='sequence') { b.label='Routine'; b.steps=[{label:'Focus', duration:25}, {label:'Rest', duration:5}]; }
-        if(t=='counter') b.label='Counter';
-        if(t=='spacer') { b.style='solid'; b.thickness='1px'; }
-        if(t=='progress_custom') { b.label='Goal'; b.start='2026-01-01'; b.end='2026-12-31'; }
-        if(t=='progress_cycle') { b.label='Cycle'; b.anchor='2026-01-01'; b.days='28'; b.resetMode='manual'; }
-        if(t=='countdown') { b.label='Event'; b.date='2026-12-31'; b.style='standard'; b.includeTime=false; }
-        if(t=='timer') { b.label='Focus'; b.hours=0; b.minutes=25; }
-        if(t=='empty') { b.label='Empty'; }
-        
-        blocks.push(b); 
-        const newIndex = blocks.length - 1;
-        renderBlocks(false, newIndex); 
-        updateState();
-        setTimeout(() => { const el = document.getElementById(`card-${newIndex}`); if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
-    };
-    
-    window.removeBlock = (i) => { blocks.splice(i, 1); renderBlocks(); updateState(); };
-
-    function getColorOptions(selected) {
+    // --- RENDER ENGINE (Single Source of Truth) ---
+    function render() {
+        const canvas = document.getElementById('canvas');
         let html = '';
-        colorPalette.forEach(c => {
-            html += `<option value="${c.hex}" ${selected===c.hex?'selected':''}>${c.name}</option>`;
-        });
-        return html;
-    }
-
-    function renderBlocks(keepOpen = false, specificIndex = -1) {
-        let openIndices = [];
-        if(specificIndex >= 0) openIndices = [specificIndex];
-        else if(keepOpen) document.querySelectorAll('.block-card.open').forEach(el => openIndices.push(parseInt(el.dataset.index)));
-
-        const area = document.getElementById('blocks-area');
-        area.innerHTML = '';
-        blocks.forEach((block, index) => {
-            if(!block.id) block.id = 'blk_' + Math.random().toString(36).substr(2, 9);
-
-            const div = document.createElement('div');
-            div.className = `block-card type-${block.type}`;
-            div.id = `card-${index}`;
-            div.dataset.index = index;
-            if(openIndices.includes(index)) div.classList.add('open');
-            div.draggable = true;
-            div.addEventListener('dragstart', function(e) { dragSrc = this; e.dataTransfer.effectAllowed = 'move'; this.classList.add('dragging'); });
-            div.addEventListener('dragover', function(e) { if (e.preventDefault) e.preventDefault(); return false; });
-            div.addEventListener('drop', function() { const s = parseInt(dragSrc.dataset.index); const t = parseInt(this.dataset.index); const item = blocks[s]; blocks.splice(s, 1); blocks.splice(t, 0, item); renderBlocks(false, t); updateState(); });
-            div.addEventListener('dragend', function() { this.classList.remove('dragging'); });
-
-            let title = block.type.toUpperCase().replace('_',' ');
-            let label = block.label || block.text || "";
+        
+        blocks.forEach((b, i) => {
+            if(!b.id) b.id = 'blk_' + Math.random().toString(36).substr(2,9);
             
-            // V59: RESTORED V52 STRING TEMPLATES
-            let html = `
-                <div class="block-header" onclick="this.parentElement.classList.toggle('open')">
-                    <span style="color:#ccc;">☰</span>
-                    <span class="block-title">${title} <span class="block-label-preview">${label}</span></span>
-                    <button class="btn-del" onclick="event.stopPropagation(); removeBlock(${index})">DEL</button>
+            // Width Logic (Inline CSS for Canvas)
+            const w = b.width === '33' ? '33.33%' : b.width === '50' ? '50%' : '100%';
+            
+            // Generate Content (Simplified Preview)
+            let content = '';
+            if(b.type === 'header') content = `<div class="txt-lg">${b.text}</div>`;
+            else if(b.type === 'date_display') content = `<div class="txt-lg">Monday</div><div class="txt-sm">Jan 01</div>`;
+            else if(b.type === 'world_clock') content = `<div class="txt-lg">12:00</div><div class="txt-sm">Local Time</div>`;
+            else content = `<div style="opacity:0.5; font-weight:bold; text-transform:uppercase; font-size:0.8rem;">${b.type.replace('_',' ')}</div><div class="txt-sm">${b.label||''}</div>`;
+            
+            // Color Logic
+            let style = `width: calc(${w} - 10px);`;
+            if(b.color && b.color !== 'default') style += `border-left: 4px solid ${b.color};`;
+
+            html += `
+            <div class="widget-block" draggable="true" id="card-${i}" data-index="${i}" style="${style}">
+                <div class="block-controls">
+                    <div class="ctrl-btn" onclick="resizeBlock(${i})">↔</div>
+                    <div class="ctrl-btn" onclick="editBlock(${i})">⚙️</div>
+                    <div class="ctrl-btn ctrl-del" onclick="deleteBlock(${i})">✕</div>
                 </div>
-                <div class="block-content">
-            `;
+                <div class="widget-content">${content}</div>
+                <div class="resize-handle" onmousedown="startResize(${i}, event)"></div>
+            </div>`;
+        });
+        
+        canvas.innerHTML = html;
+        addDragListeners();
+    }
 
-            if (block.type === 'header') html += `<label>Text</label><input type="text" value="${block.text}" oninput="updateBlock(${index}, 'text', this.value)">`;
-            else if (block.type === 'world_clock') { html += `<div class="sub-list" id="sub-list-${index}"></div><button class="sub-btn-add" onclick="addSubItem(${index}, 'locations')">+ Add City</button>`; }
-            else if (block.type === 'date_display') { 
-                html += `<label>Line 1 (Bold)</label><div class="sub-list" id="sub-list-l1-${index}"></div><button class="sub-btn-add" onclick="addDateItem(${index}, 'line1')">+ Element</button>
-                         <div style="margin-top:10px;"><label>Line 2 (Small)</label><div class="sub-list" id="sub-list-l2-${index}"></div><button class="sub-btn-add" onclick="addDateItem(${index}, 'line2')">+ Element</button></div>`; 
-            }
-            else if (block.type === 'progress_group') { html += `<div class="sub-list" id="sub-list-${index}"></div>`; }
-            else if (block.type === 'visual_grid') { 
-                html += `<div class="row"><div class="col"><label>Grid Type</label><select onchange="updateBlock(${index}, 'gridType', this.value)"><option value="year" ${block.gridType=='year'?'selected':''}>Year (Weeks)</option><option value="month" ${block.gridType=='month'?'selected':''}>Month (Calendar)</option><option value="week" ${block.gridType=='week'?'selected':''}>Week (Days)</option><option value="day" ${block.gridType=='day'?'selected':''}>Day (Hours)</option><option value="life" ${block.gridType=='life'?'selected':''}>Life (Years)</option></select></div>
-                <div class="col"><label>Size</label><select onchange="updateBlock(${index}, 'blockSize', this.value)"><option value="12px" ${block.blockSize=='12px'?'selected':''}>Small</option><option value="16px" ${block.blockSize=='16px'?'selected':''}>Medium</option><option value="24px" ${block.blockSize=='24px'?'selected':''}>Large</option></select></div>
-                <div class="col"><label>Shape</label><select onchange="updateBlock(${index}, 'shape', this.value)"><option value="square" ${block.shape=='square'?'selected':''}>Square (1x)</option><option value="wide" ${block.shape=='wide'?'selected':''}>Wide (2x)</option><option value="ultrawide" ${block.shape=='ultrawide'?'selected':''}>Ultrawide (3x)</option></select></div></div>`;
-                if(block.gridType === 'life') {
-                    html += `<div style="display:flex; gap:5px; margin-top:5px; align-items:center;"><label>DOB</label><input type="date" value="${block.dob || '1990-01-01'}" oninput="updateBlock(${index}, 'dob', this.value)"><label>Exp</label><input type="number" placeholder="80" value="${block.expectancy || 80}" oninput="updateBlock(${index}, 'expectancy', this.value)" style="width:60px"></div>`;
+    // --- ACTIONS ---
+    window.addBlock = (type) => {
+        blocks.push({ type: type, width: '100', id: 'blk_' + Date.now(), label: 'New ' + type });
+        render(); updateLink();
+        // Scroll to bottom
+        setTimeout(() => document.getElementById('canvas').scrollTop = document.getElementById('canvas').scrollHeight, 50);
+    };
+
+    window.deleteBlock = (i) => {
+        blocks.splice(i, 1);
+        render(); updateLink();
+    };
+
+    window.resizeBlock = (i) => {
+        const w = blocks[i].width;
+        blocks[i].width = w === '100' ? '50' : w === '50' ? '33' : '100';
+        render(); updateLink();
+    };
+
+    // --- DRAG & DROP (Native) ---
+    let dragSrc = null;
+    function addDragListeners() {
+        const items = document.querySelectorAll('.widget-block');
+        items.forEach(item => {
+            item.addEventListener('dragstart', function(e) {
+                dragSrc = this;
+                e.dataTransfer.effectAllowed = 'move';
+                this.classList.add('dragging');
+            });
+            item.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+            });
+            item.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            item.addEventListener('drop', function(e) {
+                e.stopPropagation();
+                if (dragSrc !== this) {
+                    const srcIdx = parseInt(dragSrc.dataset.index);
+                    const destIdx = parseInt(this.dataset.index);
+                    const temp = blocks[srcIdx];
+                    blocks.splice(srcIdx, 1);
+                    blocks.splice(destIdx, 0, temp);
+                    render(); updateLink();
                 }
-            }
-            else if (block.type === 'moon_phase') { html += `<div style="font-size:0.8rem; color:#888;">Standard Moon Phase Display</div>`; }
-            else if (block.type === 'sequence') { html += `<label>Label</label><input value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="sub-list" id="sub-list-${index}"></div><button class="sub-btn-add" onclick="addSubItem(${index}, 'steps')">+ Step</button>`; }
-            else if (block.type === 'counter') { html += `<label>Label</label><input value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)">`; }
-            else if (block.type === 'spacer') { html += `<div class="row"><div class="col"><label>Style</label><select onchange="updateBlock(${index}, 'style', this.value)"><option value="solid" ${block.style=='solid'?'selected':''}>Solid</option><option value="dotted" ${block.style=='dotted'?'selected':''}>Dotted</option><option value="dashed" ${block.style=='dashed'?'selected':''}>Dashed</option><option value="none" ${block.style=='none'?'selected':''}>None</option></select></div><div class="col"><label>Thickness</label><select onchange="updateBlock(${index}, 'thickness', this.value)"><option value="1px" ${block.thickness=='1px'?'selected':''}>Thin</option><option value="2px" ${block.thickness=='2px'?'selected':''}>Medium</option><option value="4px" ${block.thickness=='4px'?'selected':''}>Thick</option></select></div></div>`; }
-            else if (block.type === 'empty') { html += `<div style="font-size:0.8em; color:#888;">Empty Space</div>`; }
-            else if (block.type === 'countdown') {
-                html += `<label>Label</label><input value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><label>Target Date</label><input type="date" value="${block.date}" oninput="updateBlock(${index}, 'date', this.value)">
-                <div class="row"><div class="col" style="display:flex; align-items:center;"><label><input type="checkbox" style="width:auto" onchange="updateBlock(${index}, 'includeTime', this.checked); renderBlocks(true, ${index});" ${block.includeTime===true?'checked':''}> Specific Time?</label></div>
-                <div class="col"><label>Format</label><select onchange="updateBlock(${index}, 'style', this.value)"><option value="standard" ${block.style=='standard'?'selected':''}>Standard</option><option value="precise" ${block.style=='precise'?'selected':''}>Precise</option><option value="full" ${block.style=='full'?'selected':''}>Full</option></select></div></div>
-                ${block.includeTime ? `<label>Target Time</label><input type="time" value="${block.time||'00:00'}" oninput="updateBlock(${index}, 'time', this.value)">` : ''}`; 
-            }
-            else if (block.type === 'timer') html += `<label>Label</label><input value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><label>Hours</label><input type="number" value="${block.hours}" oninput="updateBlock(${index}, 'hours', this.value)"></div><div class="col"><label>Minutes</label><input type="number" value="${block.minutes}" oninput="updateBlock(${index}, 'minutes', this.value)"></div></div>`;
-            else if (block.type === 'progress_custom') html += `<label>Label</label><input value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><label>Start Date</label><input type="date" value="${block.start}" oninput="updateBlock(${index}, 'start', this.value)"></div><div class="col"><label>End Date</label><input type="date" value="${block.end}" oninput="updateBlock(${index}, 'end', this.value)"></div></div>`;
-            else if (block.type === 'progress_cycle') html += `<label>Label</label><input value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><label>Start Date</label><input type="date" value="${block.anchor}" oninput="updateBlock(${index}, 'anchor', this.value)"></div><div class="col"><label>Duration (Days)</label><input type="number" value="${block.days}" oninput="updateBlock(${index}, 'days', this.value)"></div></div><label>Mode</label><select onchange="updateBlock(${index}, 'resetMode', this.value)"><option value="manual" ${block.resetMode=='manual'?'selected':''}>Manual Reset</option><option value="auto" ${block.resetMode=='auto'?'selected':''}>Auto Loop</option></select>`;
-
-            html += `<div class="viz-controls"><div class="viz-row">
-            <div class="col"><label>Accent Color</label><div style="display:flex;gap:5px;"><select onchange="updateBlock(${index}, 'color', this.value)" style="flex:1">${getColorOptions(block.color)}</select><input type="color" value="${block.color && block.color.startsWith('#')?block.color:'#000000'}" onchange="updateBlock(${index}, 'color', this.value)" style="width:30px;height:32px;cursor:pointer;"></div></div>
-            <div class="col"><label>Text Color</label><div style="display:flex;gap:5px;"><select onchange="updateBlock(${index}, 'textColor', this.value)" style="flex:1">${getColorOptions(block.textColor)}</select><input type="color" value="${block.textColor && block.textColor.startsWith('#')?block.textColor:'#37352f'}" onchange="updateBlock(${index}, 'textColor', this.value)" style="width:30px;height:32px;cursor:pointer;"></div></div>
-            <div class="col"><label>Width</label><select onchange="updateBlock(${index}, 'width', this.value)"><option value="100">Full</option><option value="50" ${block.width=='50'?'selected':''}>Half</option><option value="33" ${block.width=='33'?'selected':''}>1/3</option></select></div>
-            </div></div>`;
-            
-            div.innerHTML = html; area.appendChild(div);
-
-            // Re-Bind
-            if(block.type === 'world_clock') renderCityList(index, block.locations);
-            if(block.type === 'progress_group') renderAutoProgressList(index, block.items);
-            if(block.type === 'sequence') renderSequenceList(index, block.steps);
-            if(block.type === 'date_display') { renderDateList(index, 'line1', block.line1); renderDateList(index, 'line2', block.line2); }
+                return false;
+            });
         });
     }
+
+    // --- SETTINGS MODAL ---
+    window.editBlock = (i) => {
+        editingIndex = i;
+        const b = blocks[i];
+        const mBody = document.getElementById('modal-content');
+        document.getElementById('modal-title').innerText = `Edit ${b.type}`;
+        
+        let html = ``;
+        
+        // Common Fields
+        if('text' in b) html += `<label>Text</label><input id="inp-text" value="${b.text}">`;
+        if('label' in b) html += `<label>Label</label><input id="inp-label" value="${b.label}">`;
+        
+        // Color Picker (Named)
+        html += `<label>Accent Color</label><select id="inp-color">
+            <option value="default">Default</option>
+            <option value="#5b5b5b">Dark Grey</option><option value="#7f8c8d">Grey</option>
+            <option value="#27ae60">Green</option><option value="#c0392b">Red</option>
+            <option value="#2980b9">Blue</option><option value="#f39c12">Orange</option>
+            <option value="#8e44ad">Purple</option>
+        </select>`;
+        
+        mBody.innerHTML = html;
+        if(b.color) document.getElementById('inp-color').value = b.color;
+        
+        document.getElementById('modal-overlay').style.display = 'flex';
+    };
+
+    window.saveModal = () => {
+        const i = editingIndex;
+        if(i > -1) {
+            const txt = document.getElementById('inp-text');
+            const lbl = document.getElementById('inp-label');
+            const col = document.getElementById('inp-color');
+            
+            if(txt) blocks[i].text = txt.value;
+            if(lbl) blocks[i].label = lbl.value;
+            if(col) blocks[i].color = col.value;
+            
+            render(); updateLink();
+            closeModal(null, true);
+        }
+    };
+
+    window.closeModal = (e, force) => {
+        if(force || e.target.id === 'modal-overlay') {
+            document.getElementById('modal-overlay').style.display = 'none';
+        }
+    };
+
+    // --- GLOBAL ---
+    window.updateGlobal = () => {
+        settings.theme = document.getElementById('s-theme').value;
+        settings.font = document.getElementById('s-font').value;
+        settings.padding = document.getElementById('s-pad').value;
+        updateLink();
+    };
+
+    window.togglePanel = (id) => {
+        const p = document.getElementById(id);
+        p.classList.toggle('open');
+    };
+
+    window.updateLink = () => {
+        const hash = encode({settings, blocks});
+        const url = window.location.href.split('#')[0].replace('admin.html', 'index.html');
+        document.getElementById('result-url').value = `${url}#${hash}`;
+        // Update URL to save state
+        window.history.replaceState(null, null, `#${hash}`);
+    };
+
+    window.refresh = () => {
+        // Reloads the iframe approach if we had one, but here we just re-render
+        render();
+    };
+
+    window.copyLink = () => {
+        const el = document.getElementById('result-url');
+        el.select();
+        navigator.clipboard.writeText(el.value);
+        alert("Copied!");
+    };
     
-    // ... (Helpers identical to V52) ...
-    function renderCityList(bIdx, array) { const container = document.getElementById(`sub-list-${bIdx}`); if(!container) return; container.innerHTML = ''; array.forEach((item, iIdx) => { const row = document.createElement('div'); row.className = 'sub-item'; const wrapper = document.createElement('div'); wrapper.style.cssText = 'display:flex;width:100%;gap:8px;align-items:flex-start;'; const searchWrap = document.createElement('div'); searchWrap.className = 'city-search-wrapper'; searchWrap.style.flex = '1'; const input = document.createElement('input'); input.placeholder = "🔍 Search..."; input.value = item._searchVal || ''; if(item.label && !item._searchVal) input.placeholder = item.label; input.oninput = (e) => showCitySuggestions(e.target, bIdx, iIdx); const results = document.createElement('div'); results.className = 'city-results'; searchWrap.append(input, results); const lbl = document.createElement('input'); lbl.style.flex = '1'; lbl.value = item.label || ''; lbl.oninput = (e) => { blocks[bIdx].locations[iIdx].label = e.target.value; updateState(); }; const up = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, 'locations', ${iIdx}, -1)">↑</button>`; const down = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, 'locations', ${iIdx}, 1)">↓</button>`; const del = `<button class="sub-btn-rem" onclick="removeSubItem(${bIdx}, 'locations', ${iIdx})">×</button>`; wrapper.append(searchWrap, lbl); wrapper.insertAdjacentHTML('beforeend', up+down+del); row.appendChild(wrapper); container.appendChild(row); }); }
-    function showCitySuggestions(input, bIdx, iIdx) { const val = input.value.toLowerCase(); const results = input.nextElementSibling; results.innerHTML = ''; if(val.length < 2) { results.style.display = 'none'; return; } const matches = cityDB.filter(c => c.name.toLowerCase().includes(val)).slice(0, 5); if(matches.length === 0) { results.style.display = 'none'; return; } matches.forEach(city => { const div = document.createElement('div'); div.className = 'city-result-item'; div.innerText = city.name; div.onclick = () => { blocks[bIdx].locations[iIdx]._searchVal = city.name; blocks[bIdx].locations[iIdx].label = city.name.split(',')[0]; blocks[bIdx].locations[iIdx].timezone = city.tz; updateState(); renderBlocks(true, bIdx); }; results.appendChild(div); }); results.style.display = 'block'; document.addEventListener('click', function close(e) { if(!input.contains(e.target)) { results.style.display = 'none'; document.removeEventListener('click', close); }}); }
-    function renderAutoProgressList(bIdx, array) { const container = document.getElementById(`sub-list-${bIdx}`); if(!container) return; container.innerHTML = ''; array.forEach((item, iIdx) => { const row = document.createElement('div'); row.className = 'sub-item'; const mainRow = document.createElement('div'); mainRow.style.cssText = 'display:flex;width:100%;align-items:center;gap:8px; flex-wrap:wrap;'; const check = document.createElement('input'); check.type = 'checkbox'; check.style.width='auto'; check.margin='0'; check.checked = item.visible !== false; check.onchange = (e) => { blocks[bIdx].items[iIdx].visible = e.target.checked; updateState(); }; const lbl = document.createElement('input'); lbl.style.flex='1'; lbl.value = item.label; lbl.oninput = (e) => { blocks[bIdx].items[iIdx].label = e.target.value; updateState(); }; const up = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, 'items', ${iIdx}, -1)">↑</button>`; const down = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, 'items', ${iIdx}, 1)">↓</button>`; mainRow.append(check, lbl); if(item.type === 'life') { mainRow.insertAdjacentHTML('beforeend', `<input type="date" value="${item.dob||'1990-01-01'}" oninput="updateSubItem(${bIdx}, 'items', ${iIdx}, 'dob', this.value)" style="width:100px;font-size:0.7em"><input type="number" value="${item.expectancy||80}" oninput="updateSubItem(${bIdx}, 'items', ${iIdx}, 'expectancy', this.value)" style="width:40px;font-size:0.7em">`); } mainRow.insertAdjacentHTML('beforeend', up+down); row.appendChild(mainRow); container.appendChild(row); }); }
-    function renderSequenceList(bIdx, array) { const container = document.getElementById(`sub-list-${bIdx}`); if(!container) return; container.innerHTML = ''; array.forEach((item, iIdx) => { const row = document.createElement('div'); row.className = 'sub-item'; const up = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, 'steps', ${iIdx}, -1)">↑</button>`; const down = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, 'steps', ${iIdx}, 1)">↓</button>`; row.innerHTML = `<input value="${item.label}" oninput="updateSubItem(${bIdx}, 'steps', ${iIdx}, 'label', this.value)" style="flex:2" placeholder="Task"><input type="number" value="${item.duration}" oninput="updateSubItem(${bIdx}, 'steps', ${iIdx}, 'duration', this.value)" style="width:60px" placeholder="Min">${up}${down}<button class="sub-btn-rem" onclick="removeSubItem(${bIdx}, 'steps', ${iIdx})">×</button>`; container.appendChild(row); }); }
-    function renderDateList(bIdx, key, array) { const container = document.getElementById(`sub-list-${key==='line1'?'l1':'l2'}-${bIdx}`); if(!container) return; container.innerHTML = ''; array.forEach((item, iIdx) => { const row = document.createElement('div'); row.className = 'sub-item'; const sel = document.createElement('select'); dateTokens.forEach(t => { sel.innerHTML += `<option value="${t.val}" ${((typeof item==='string'?item:item.type)==t.val)?'selected':''}>${t.txt}</option>`; }); sel.onchange = (e) => { blocks[bIdx][key][iIdx] = e.target.value; updateState(); }; const up = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, '${key}', ${iIdx}, -1)">↑</button>`; const down = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, '${key}', ${iIdx}, 1)">↓</button>`; const del = `<button class="sub-btn-rem" onclick="removeSubItem(${bIdx}, '${key}', ${iIdx})">×</button>`; row.append(sel); row.insertAdjacentHTML('beforeend', up+down+del); container.appendChild(row); }); }
-    
-    function generateLink() { const json = JSON.stringify({ settings, blocks }); const encoded = utf8_to_b64(json); let url = window.location.href.split('#')[0].split('?')[0]; if(url.endsWith('admin.html')) url = url.substring(0, url.lastIndexOf('/')); if(url.endsWith('/')) url = url.slice(0, -1); const final = `${url}/index.html#${encoded}`; document.getElementById('result-url').innerText = final; return final; }
-    window.copyLink = () => { navigator.clipboard.writeText(document.getElementById('result-url').innerText).then(() => { const btn = document.getElementById('btn-copy'); btn.innerText = "COPIED!"; setTimeout(() => btn.innerText = "COPY", 1000); }); };
-    
+    window.openLink = () => {
+        window.open(document.getElementById('result-url').value, '_blank');
+    };
+
     init();
 </script>
 </body>
 </html>
-
-}
