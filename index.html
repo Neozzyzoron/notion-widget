@@ -2,156 +2,81 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Widget V73</title>
+    <title>Widget Viewer</title>
     <style>
-        :root { --c-bg: #FFFFFF; --c-txt: #333; --font: sans-serif; --pad: 1rem; --base-size: 16px; }
-        @media (prefers-color-scheme: dark) { :root { --c-bg: #191919; --c-txt: #D4D4D4; } }
-        body { margin: 0; padding: var(--pad); font-family: var(--font); background: var(--c-bg); color: var(--c-txt); font-size: var(--base-size); overflow-x: hidden; }
-        
-        #dashboard { display: grid; grid-template-columns: repeat(12, 1fr); gap: 15px; width: 100%; grid-auto-flow: dense; }
-        
-        .widget-block {
-            box-sizing: border-box; border-radius: 8px; overflow: hidden;
-            display: flex; flex-direction: column; justify-content: center;
-            padding: var(--pad); transition: all 0.2s ease;
+        body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+        #canvas { display: grid; grid-template-columns: repeat(12, 1fr); gap: 15px; padding: 10px; }
+        .block { grid-column: span 12; border-radius: 8px; overflow: hidden; }
+        #edit-link { 
+            position: fixed; top: 5px; right: 5px; opacity: 0.1; 
+            font-size: 10px; color: #000; text-decoration: none; 
         }
-        
-        .theme-card .widget-block { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .theme-minimal .widget-block { background: transparent !important; }
-        
-        .txt-lg { font-size: 1.5em; font-weight: 700; line-height: 1.1; }
-        .txt-sub { font-size: 0.85em; opacity: 0.8; }
-        .txt-lbl { font-size: 0.7em; text-transform: uppercase; font-weight: 700; opacity: 0.5; margin-bottom: 4px; }
-        .clock-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 4px 0; }
-        
-        /* GRID */
-        .grid-container { display: flex; flex-wrap: wrap; gap: 2px; }
-        .grid-cell { border-radius: 1px; flex-shrink: 0; opacity: 0.15; background: currentColor; }
-        .grid-cell.filled { opacity: 0.9; }
-        
-        /* PROGRESS */
-        .prog-row { margin-bottom: 6px; width: 100%; }
-        .prog-meta { display: flex; justify-content: space-between; font-size: 0.8em; margin-bottom: 2px; }
-        .prog-track { height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; }
-        .prog-fill { height: 100%; background: currentColor; }
-        
-        .edit-fab { position: fixed; top: 10px; right: 10px; width: 35px; height: 35px; background: #fff; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9999; color: #333; text-decoration: none; }
+        #edit-link:hover { opacity: 1; }
     </style>
 </head>
 <body>
-    <a id="edit-btn" class="edit-fab" href="#" style="display:none">✎</a>
-    <div id="dashboard"></div>
+    <div id="canvas"></div>
+    <a id="edit-link" href="admin.html">✎ Edit</a>
 
-    <script>
-        function decode(str) { try { return JSON.parse(decodeURIComponent(escape(window.atob(str)))); } catch(e) { return null; } }
-
-        function render() {
-            const hash = window.location.hash.substring(1);
-            if(!hash) return;
-            const data = decode(hash);
-            if(!data) return;
-
-            const s = data.settings || {};
-            const r = document.documentElement;
-            r.style.setProperty('--font', s.font==='serif'?'Georgia':s.font==='mono'?'monospace':'sans-serif');
-            r.style.setProperty('--pad', s.padding==='compact'?'0.5rem':s.padding==='spacious'?'1.5rem':'1rem');
-            r.style.setProperty('--base-size', s.textSize==='small'?'14px':s.textSize==='large'?'18px':'16px');
-            document.body.className = `theme-${s.theme}`;
-            
-            const root = document.getElementById('dashboard');
-            root.innerHTML = '';
-            
-            if(new URLSearchParams(window.location.search).get('preview')!=='true') {
-                const btn = document.getElementById('edit-btn');
-                btn.style.display = 'flex';
-                btn.onclick = (e) => { e.preventDefault(); window.location.href = window.location.href.replace('index.html','admin.html'); };
-            }
-
-            data.blocks.forEach(b => {
-                const div = document.createElement('div');
-                div.className = 'widget-block';
-                div.style.gridColumn = `span ${b.cols||6}`;
-                div.style.gridRowEnd = `span ${Math.ceil((b.height||100)/10)}`;
-                div.style.height = `${b.height||100}px`;
-                div.style.background = b.bgColor || '#fff';
-                div.style.color = b.textColor || '#333';
-                if(b.type === 'empty') div.style.background = 'transparent';
-                
-                div.innerHTML = renderContent(b, s);
-                root.appendChild(div);
-            });
-        }
-
-        function renderContent(b, s) {
-            let h = '';
-            let acc = b.accentColor || '#3498db';
-            
-            if(b.type==='header') h = `<div class="txt-lg">${b.text}</div>`;
-            else if(b.type==='date_display') {
-                h = `<div class="txt-lg">${buildDate(b.line1)}</div><div class="txt-sub">${buildDate(b.line2)}</div>`;
-            }
-            else if(b.type==='world_clock') {
-                if(b.locations) b.locations.forEach(l => {
-                    let ts = new Date().toLocaleTimeString('en-US', {timeZone:l.timezone, hour:s.use24h=='24'?'2-digit':'numeric', minute:'2-digit', second:b.showSeconds?'2-digit':undefined});
-                    let ds = b.showDate ? new Date().toLocaleDateString('en-US', {weekday:'short',day:'numeric'}) : '';
-                    let tz = b.showTimezone ? `<span style="opacity:0.5;font-size:0.7em">(${l.timezone.split('/')[1]})</span>` : '';
-                    h += `<div class="clock-row">
-                        <div><div style="font-weight:600">${l.label} ${tz}</div><div style="font-size:0.7em;opacity:0.7">${ds}</div></div>
-                        <div class="txt-lg" style="font-family:monospace">${ts}</div>
-                    </div>`;
-                });
-            }
-            else if(b.type==='visual_grid') {
-                let size = b.blockSize==='24px'?24: b.blockSize==='12px'?12:16;
-                let total=52; let current=10; 
-                if(b.gridType==='life' && b.dob) {
-                    const dob = new Date(b.dob); const now = new Date();
-                    const age = now.getFullYear() - dob.getFullYear();
-                    total = parseInt(b.expectancy||80); current = age;
+<script>
+const Engine = {
+    render(block) {
+        let html = `<div style="padding:15px; background:${block.colors?.bg || '#fff'}; color:${block.colors?.text || '#000'}; height:100%; border-radius:inherit; box-sizing:border-box;">`;
+        switch(block.type) {
+            case 'header': html += `<h2 style="margin:0">${block.content || 'Header'}</h2>`; break;
+            case 'life':
+                const dob = new Date(block.dob || '1990-01-01');
+                const diff = new Date() - dob;
+                const weeksLived = Math.floor(diff / (1000 * 60 * 60 * 24 * 7));
+                const totalWeeks = (block.years || 80) * 52;
+                html += `<div>Life Progress</div><div style="display:grid; grid-template-columns:repeat(52, 1fr); gap:1px; margin-top:5px;">`;
+                for(let i=0; i<totalWeeks; i++) {
+                    const color = i < weeksLived ? (block.colors?.accent || '#37352f') : '#e9e9e8';
+                    html += `<div style="width:100%; aspect-ratio:1; background:${color}"></div>`;
                 }
-                if(b.gridType==='month') { total=30; current=new Date().getDate(); }
-                h = `<div class="txt-lbl">${b.gridType.toUpperCase()} GRID</div><div style="display:flex;flex-wrap:wrap;gap:2px">`;
-                for(let i=0; i<total; i++) {
-                    let op = i < current ? 1 : 0.2;
-                    h += `<div style="width:${size}px;height:${size}px;background:${acc};opacity:${op};border-radius:1px"></div>`;
-                }
-                h += `</div>`;
-            }
-            else if(b.type==='progress_group') {
-                if(b.items) b.items.forEach(it => {
-                    if(it.visible!==false) {
-                        let pct = 50; // Full logic can be added here
-                        if(it.type==='year') { 
-                            const n = new Date(); const s = new Date(n.getFullYear(),0,1); const e = new Date(n.getFullYear()+1,0,1);
-                            pct = ((n-s)/(e-s))*100;
-                        }
-                        h += `<div class="prog-row"><div class="prog-meta"><span>${it.label}</span><span>${Math.round(pct)}%</span></div>
-                        <div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${acc}"></div></div></div>`;
-                    }
-                });
-            }
-            else if(b.type !== 'empty') {
-                h = `<div class="txt-lbl">${b.type.replace('_',' ')}</div><div class="txt-lg">${b.label||''}</div>`;
-            }
-            return h;
+                html += `</div>`;
+                break;
+            case 'moon': html += `<div style="font-size:2em; text-align:center;">${this.getMoonPhase()}</div>`; break;
+            case 'spacer': html += `<div style="height:${block.h}px"></div>`; break;
+            default: html += `Block: ${block.type}`;
         }
+        html += `</div>`;
+        return html;
+    },
+    getMoonPhase() {
+        const phases = ['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
+        return phases[new Date().getDate() % 8];
+    }
+};
+
+function init() {
+    const hash = window.location.hash.substring(1);
+    if(!hash) return;
+    
+    try {
+        const state = JSON.parse(atob(hash));
+        const canvas = document.getElementById('canvas');
+        document.body.style.fontFamily = state.settings?.font || 'sans-serif';
         
-        function buildDate(tokens) {
-            if(!tokens) return '';
-            const now = new Date();
-            return tokens.map(t => {
-                if(t==='day_name_full') return now.toLocaleDateString([], {weekday:'long'});
-                if(t==='date_num') return now.getDate();
-                if(t==='month_full') return now.toLocaleDateString([], {month:'long'});
-                if(t==='space') return ' ';
-                if(t==='separator') return '|';
-                return t; 
-            }).join('');
-        }
+        state.blocks.forEach(block => {
+            const div = document.createElement('div');
+            div.className = 'block';
+            div.style.gridColumn = `span ${block.w}`;
+            div.innerHTML = Engine.render(block);
+            canvas.appendChild(div);
+        });
 
-        window.addEventListener('hashchange', render);
-        render(); setInterval(render, 1000);
-    </script>
+        if(window.location.search.includes('preview=true')) {
+            document.getElementById('edit-link').style.display = 'none';
+        } else {
+            document.getElementById('edit-link').href = 'admin.html#' + hash;
+        }
+    } catch(e) {
+        document.body.innerHTML = "Error loading configuration.";
+    }
+}
+
+init();
+</script>
 </body>
 </html>
