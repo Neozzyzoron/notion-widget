@@ -3,69 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Widget V68</title>
+    <title>Widget V69</title>
     <style>
-        :root { --c-bg: #FFFFFF; --c-txt: #37352F; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; --pad: 1rem; --rad: 8px; }
+        /* Shared variables from Admin */
+        :root { --c-bg: #FFFFFF; --c-txt: #37352F; --font: sans-serif; --base-size: 16px; --pad: 1rem; }
         @media (prefers-color-scheme: dark) { :root { --c-bg: #191919; --c-txt: #D4D4D4; } }
         
-        body { margin: 0; padding: var(--pad); font-family: var(--font); background: var(--c-bg); color: var(--c-txt); overflow-x: hidden; }
+        body { margin: 0; padding: var(--pad); font-family: var(--font); background: var(--c-bg); color: var(--c-txt); overflow-x: hidden; font-size: var(--base-size); }
         
         #dashboard { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 10px; width: 100%; }
         
-        /* BLOCK CONTAINER */
+        /* BLOCK */
         .widget-block {
-            box-sizing: border-box;
-            position: relative;
-            border-radius: var(--rad);
-            overflow: hidden;
+            box-sizing: border-box; border-radius: 8px; overflow: hidden;
             display: flex; flex-direction: column; justify-content: center;
-            background: #f4f5f7; color: inherit;
+            padding: var(--pad);
             transition: all 0.2s ease;
-            min-height: 40px;
         }
         
         /* THEMES */
         .theme-card .widget-block { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .theme-minimal .widget-block { background: transparent !important; }
         
-        /* CONTENT PADDING */
-        .w-content { padding: 12px 15px; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; }
-        
-        /* TYPOGRAPHY */
-        .txt-label { font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; margin-bottom: 4px; font-weight: 600; }
-        .txt-main { font-size: 1.2em; font-weight: 700; line-height: 1.2; }
-        .txt-sub { font-size: 0.9em; opacity: 0.8; }
-        
-        /* SPECIFIC BLOCKS */
-        /* Grid */
-        .grid-container { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 5px; }
-        .grid-cell { background: currentColor; border-radius: 1px; flex-shrink: 0; opacity: 0.15; } 
+        .txt-lg { font-size: 1.5em; font-weight: 700; line-height: 1.1; }
+        .txt-sub { font-size: 0.85em; opacity: 0.8; }
+        .clock-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 4px 0; }
+        .grid-container { display: flex; flex-wrap: wrap; gap: 2px; }
+        .grid-cell { border-radius: 1px; flex-shrink: 0; opacity: 0.15; }
         .grid-cell.filled { opacity: 0.9; }
         
-        /* Progress */
-        .prog-row { margin-bottom: 6px; }
-        .prog-meta { display: flex; justify-content: space-between; font-size: 0.8em; margin-bottom: 2px; }
+        .prog-row { margin-bottom: 6px; width: 100%; }
         .prog-track { height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; }
-        .prog-fill { height: 100%; background: currentColor; }
+        .prog-fill { height: 100%; }
         
-        /* Clock */
-        .clock-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 4px 0; }
-        .clock-row:last-child { border: none; }
-        
-        /* Moon */
-        .moon-row { display: flex; align-items: center; gap: 12px; }
-        .moon-icon { font-size: 2em; line-height: 1; }
-        
-        /* Spacer */
-        .spacer-line { width: 100%; opacity: 0.5; }
-        
-        /* EDIT BUTTON */
-        .edit-fab { position: fixed; top: 10px; right: 10px; width: 35px; height: 35px; background: #fff; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9999; color: #333; text-decoration: none; font-weight: bold; transition: transform 0.2s; }
-        .edit-fab:hover { transform: scale(1.1); }
+        /* EDIT FAB */
+        .edit-fab { position: fixed; top: 10px; right: 10px; width: 35px; height: 35px; background: #fff; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9999; color: #333; text-decoration: none; }
     </style>
 </head>
 <body>
-    <a id="edit-btn" class="edit-fab" href="#" title="Edit Widget" style="display:none">✎</a>
+    <a id="edit-btn" class="edit-fab" href="#" style="display:none">✎</a>
     <div id="dashboard"></div>
 
     <script>
@@ -77,135 +53,112 @@
             const data = decode(hash);
             if(!data) return;
 
+            // Global Styles
             const s = data.settings || {};
-            document.documentElement.style.setProperty('--font', s.font === 'serif' ? 'Georgia, serif' : s.font === 'mono' ? 'monospace' : '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
-            document.documentElement.style.setProperty('--pad', s.padding === 'compact' ? '0.5rem' : s.padding === 'spacious' ? '1.5rem' : '1rem');
-            
-            let baseSize = '16px';
-            if(s.textSize === 'small') baseSize = '14px';
-            if(s.textSize === 'large') baseSize = '18px';
-            document.body.style.fontSize = baseSize;
-            
+            const r = document.documentElement;
+            r.style.setProperty('--font', s.font === 'serif' ? 'Georgia' : s.font === 'mono' ? 'monospace' : 'sans-serif');
+            r.style.setProperty('--pad', s.padding === 'compact' ? '0.5rem' : s.padding === 'spacious' ? '1.5rem' : '1rem');
+            r.style.setProperty('--base-size', s.textSize === 'small' ? '14px' : s.textSize === 'large' ? '18px' : '16px');
             document.body.className = `theme-${s.theme}`;
-
-            const params = new URLSearchParams(window.location.search);
-            if(params.get('preview') !== 'true') {
-                const btn = document.getElementById('edit-btn');
-                btn.style.display = 'flex';
-                btn.onclick = (e) => {
-                    e.preventDefault();
-                    let url = window.location.href.split('#')[0].replace('index.html', 'admin.html');
-                    if(url.endsWith('/')) url += 'admin.html';
-                    window.location.href = url + window.location.hash;
-                };
-            }
+            if(s.theme === 'card') document.getElementById('dashboard').style.gap = '15px';
 
             const root = document.getElementById('dashboard');
             root.innerHTML = '';
 
-            data.blocks.forEach((b, i) => {
+            const params = new URLSearchParams(window.location.search);
+            if(params.get('preview') !== 'true') {
+                document.getElementById('edit-btn').style.display = 'flex';
+                document.getElementById('edit-btn').onclick = (e) => {
+                    e.preventDefault();
+                    window.location.href = window.location.href.replace('index.html', 'admin.html');
+                };
+            }
+
+            data.blocks.forEach(b => {
                 const div = document.createElement('div');
                 div.className = 'widget-block';
-                div.id = `blk-${i}`;
-                
                 div.style.width = `calc(${b.width}% - 10px)`;
                 div.style.height = `${b.height}px`;
+                div.style.background = b.bgColor || '#fff';
+                div.style.color = b.textColor || '#333';
                 
-                // BUBBLE STYLING (Accent = Background)
-                if(b.type !== 'empty' && b.type !== 'spacer') {
-                    if(b.color && b.color !== 'default') div.style.backgroundColor = b.color;
-                    if(b.textColor && b.textColor !== 'default') div.style.color = b.textColor;
-                    // Auto-white text if accent is standard color? 
-                    // For now, rely on manual text color setting
-                    if(b.color && b.color !== 'default' && (!b.textColor || b.textColor === 'default')) {
-                        div.style.color = '#fff'; // Smart default
-                    }
-                }
-
-                const content = document.createElement('div');
-                content.className = 'w-content';
+                if(b.type === 'empty') { div.style.background = 'transparent'; }
+                else div.innerHTML = renderBlockContent(b, s); // Shared Logic
                 
-                if(b.type === 'header') {
-                    content.innerHTML = `<div class="txt-main" style="font-size:1.5em">${b.text}</div>`;
-                }
-                else if(b.type === 'date_display') {
-                    content.innerHTML = `<div class="txt-main">${buildDateString(b.line1)}</div><div class="txt-sub">${buildDateString(b.line2)}</div>`;
-                }
-                else if(b.type === 'world_clock') {
-                    if(b.locations) {
-                        b.locations.forEach(loc => {
-                            const timeStr = new Date().toLocaleTimeString('en-US', {timeZone: loc.timezone, hour: s.use24h=='24'?'2-digit':'numeric', minute:'2-digit', hour12: s.use24h!='24'});
-                            content.innerHTML += `<div class="clock-row"><span class="txt-sub">${loc.label}</span><span class="txt-main" style="font-family:monospace">${timeStr}</span></div>`;
-                        });
-                    }
-                }
-                else if(b.type === 'visual_grid') {
-                    // Visual Logic
-                    let size = b.blockSize === '24px' ? 24 : 16;
-                    content.innerHTML = `<div class="txt-label">${b.gridType} Grid</div><div class="grid-container">` + 
-                    Array(20).fill(0).map(() => `<div class="grid-cell filled" style="width:${size}px;height:${size}px"></div>`).join('') +
-                    `</div>`;
-                }
-                else if(b.type === 'progress_group') {
-                    if(b.items) {
-                        b.items.forEach(item => {
-                            if(item.visible !== false) {
-                                content.innerHTML += `<div class="prog-row"><div class="prog-meta"><span>${item.label}</span><span>50%</span></div><div class="prog-track"><div class="prog-fill" style="width:50%"></div></div></div>`;
-                            }
-                        });
-                    }
-                }
-                else if(b.type === 'countdown') {
-                    const target = new Date(b.date);
-                    const now = new Date();
-                    const diff = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
-                    const val = diff > 0 ? `${diff} Days` : "Done";
-                    content.innerHTML = `<div class="clock-row"><span class="txt-label">${b.label}</span><span class="txt-main">${val}</span></div>`;
-                }
-                else if(b.type === 'spacer') {
-                    div.style.background = 'transparent';
-                    div.style.boxShadow = 'none';
-                    let col = b.color === 'default' ? 'currentColor' : b.color;
-                    content.innerHTML = `<div class="spacer-line" style="border-bottom: ${b.thickness||'2px'} ${b.style||'solid'} ${col}"></div>`;
-                }
-                else if(b.type === 'empty') {
-                    div.style.background = 'transparent';
-                    div.style.boxShadow = 'none';
-                }
-                else {
-                    content.innerHTML = `<div class="txt-label">${b.type}</div><div class="txt-main">${b.label||''}</div>`;
-                }
-
-                div.appendChild(content);
                 root.appendChild(div);
             });
         }
 
-        // Logic Helpers
-        function buildDateString(tokens) {
-            if(!tokens) return '';
-            const now = new Date();
-            return tokens.map(t => {
-                const type = (typeof t === 'string') ? t : t.type;
-                if(type === 'day_name_full') return now.toLocaleDateString([], {weekday:'long'});
-                if(type === 'date_num') return now.getDate();
-                if(type === 'month_full') return now.toLocaleDateString([], {month:'long'});
-                if(type === 'year') return now.getFullYear();
-                if(type === 'separator') return '|';
-                if(type === 'space') return ' ';
-                if(type === 'day_year') {
-                    const start = new Date(now.getFullYear(), 0, 0);
-                    const diff = now - start;
-                    const oneDay = 1000 * 60 * 60 * 24;
-                    const day = Math.floor(diff / oneDay);
-                    return `Day ${day}/365`;
+        // --- SHARED RENDER LOGIC (Copy of Admin logic for fidelity) ---
+        function renderBlockContent(b, s) {
+            let h = '';
+            if(b.type === 'header') h = `<div class="txt-lg">${b.text}</div>`;
+            else if(b.type === 'date_display') {
+                h = `<div class="txt-lg">${buildDate(b.line1)}</div><div class="txt-sub">${buildDate(b.line2)}</div>`;
+            }
+            else if(b.type === 'world_clock') {
+                if(b.locations) {
+                    b.locations.forEach(loc => {
+                        let timeOpt = { timeZone: loc.timezone, hour: s.use24h=='24'?'2-digit':'numeric', minute:'2-digit' };
+                        if(b.showSeconds) timeOpt.second = '2-digit';
+                        let ts = new Date().toLocaleTimeString('en-US', timeOpt);
+                        let ds = b.showDate ? new Date().toLocaleDateString('en-US', {weekday:'short', day:'numeric'}) : '';
+                        let tz = b.showTimezone ? `<span style="opacity:0.5;font-size:0.7em">(${loc.timezone.split('/')[1]})</span>` : '';
+                        h += `<div class="clock-row">
+                            <div><div style="font-weight:600">${loc.label} ${tz}</div><div style="font-size:0.7em;opacity:0.7">${ds}</div></div>
+                            <div class="txt-lg" style="font-family:monospace">${ts}</div>
+                        </div>`;
+                    });
                 }
-                return '';
+            }
+            else if(b.type === 'visual_grid') {
+                let color = b.accentColor || '#6aa84f';
+                let size = b.blockSize === '24px' ? 24 : 14;
+                h = `<div style="font-size:0.8em;opacity:0.7;text-transform:uppercase">${b.gridType} Grid</div><div class="grid-container">`;
+                for(let i=0; i<30; i++) {
+                    h += `<div class="grid-cell ${i<10?'filled':''}" style="width:${size}px;height:${size}px;background:${color}"></div>`;
+                }
+                h += `</div>`;
+            }
+            else if(b.type === 'progress_group') {
+                let color = b.accentColor || '#3498db';
+                if(b.items) b.items.forEach(it => {
+                    if(it.visible !== false) {
+                        h += `<div class="prog-row"><div class="prog-meta"><span>${it.label}</span><span>45%</span></div><div class="prog-track"><div class="prog-fill" style="width:45%;background:${color}"></div></div></div>`;
+                    }
+                });
+            }
+            else if(b.type === 'countdown') {
+                let color = b.accentColor || '#f39c12';
+                // Logic can be expanded here for real dates
+                h = `<div style="display:flex;justify-content:space-between;align-items:center;background:${color}20;padding:10px;border-radius:6px;width:100%">
+                    <span style="font-weight:600">${b.label}</span><span style="font-size:1.2em;font-weight:bold;color:${color}">5 Days</span>
+                </div>`;
+            }
+            else if(b.type === 'spacer') {
+                let col = b.accentColor || '#ccc';
+                h = `<div style="width:100%;border-bottom:${b.thickness||'2px'} ${b.style||'solid'} ${col};opacity:0.5"></div>`;
+            }
+            else if(b.type !== 'empty') {
+                h = `<div style="font-size:0.7em;opacity:0.7;text-transform:uppercase">${b.type.replace('_',' ')}</div><div class="txt-lg">${b.label||''}</div>`;
+            }
+            return h;
+        }
+        
+        function buildDate(tokens) {
+            if(!tokens) return '';
+            return tokens.map(t => {
+                if(t === 'space') return ' ';
+                if(t === 'separator') return '|';
+                if(t === 'date_num') return '28';
+                if(t === 'day_name_full') return 'Monday';
+                return t.replace('_',' '); 
             }).join('');
         }
 
         window.addEventListener('hashchange', render);
         render();
+        setInterval(render, 1000);
     </script>
 </body>
 </html>
