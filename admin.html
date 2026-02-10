@@ -3,22 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Widget Admin V69</title>
+    <title>Widget Admin V70</title>
     <style>
         /* CORE */
         * { box-sizing: border-box; }
-        :root { --c-accent: #34495e; --bg-canvas: #f4f5f7; --font: sans-serif; --base-size: 16px; --pad: 1rem; }
+        :root { --c-accent: #34495e; --bg-canvas: #f4f5f7; --font: sans-serif; --pad: 1rem; --base-size: 16px; }
         html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg-canvas); color: #37352f; overflow: hidden; }
         
         .app-container { display: flex; flex-direction: column; height: 100vh; }
         
         /* HEADER */
-        .app-header { background: #fff; border-bottom: 1px solid #ddd; z-index: 100; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .app-header { background: #fff; border-bottom: 1px solid #ddd; z-index: 100; flex-shrink: 0; }
         .header-bar { padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; background: #fff; position: relative; z-index: 2; border-bottom: 1px solid #eee; }
         .header-title { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
-        .header-actions { display: flex; gap: 8px; }
         
-        /* SETTINGS (Dark Mode) */
+        /* SETTINGS TOGGLE (Dark) */
         .settings-toggle { background: #2c3e50; color: white; padding: 10px 20px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 10px; }
         .settings-toggle:hover { background: #34495e; }
         
@@ -35,55 +34,34 @@
         }
         .canvas-watermark { position: absolute; top: 20px; left: 20px; font-size: 0.8rem; font-weight: 700; color: #ccc; text-transform: uppercase; pointer-events: none; }
         
-        /* BLOCK */
+        /* BLOCK (Visual) */
         .widget-block { 
             position: relative; border-radius: 8px; 
             min-height: 40px; transition: all 0.1s;
             display: flex; flex-direction: column; justify-content: center;
             overflow: hidden;
-            /* Admin Visuals */
+            /* Admin Outline */
             border: 2px dashed #bdc3c7; 
             background: #fff; 
-            padding: 2px; /* Slight padding for drag border */
+            padding: 2px;
         }
         .widget-block:hover { border-color: #3498db; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 10; }
         .widget-block.dragging { opacity: 0.5; transform: scale(0.98); border-style: solid; }
         
-        /* RENDERED CONTENT (The Smart Part) */
+        /* INNER CONTENT (Smart Renderer) */
         .block-inner {
             width: 100%; height: 100%;
             padding: var(--pad);
             display: flex; flex-direction: column; justify-content: center;
             border-radius: 6px;
-            pointer-events: none; /* Let drag pass through */
-            font-family: var(--font);
-            font-size: var(--base-size);
+            pointer-events: none; /* Drag passthrough */
+            font-family: var(--font); font-size: var(--base-size);
         }
-        
-        /* BLOCK STYLES */
-        .txt-lg { font-size: 1.5em; font-weight: 700; line-height: 1.1; }
-        .txt-sub { font-size: 0.85em; opacity: 0.8; }
-        .txt-label { font-size: 0.7em; text-transform: uppercase; opacity: 0.6; font-weight: 600; margin-bottom: 4px; }
-        
-        /* GRID */
-        .grid-container { display: flex; flex-wrap: wrap; gap: 2px; align-content: flex-start; }
-        .grid-cell { border-radius: 1px; flex-shrink: 0; opacity: 0.15; background: currentColor; }
-        .grid-cell.filled { opacity: 0.9; }
-        
-        /* PROGRESS */
-        .prog-row { margin-bottom: 6px; width: 100%; }
-        .prog-meta { display: flex; justify-content: space-between; font-size: 0.8em; margin-bottom: 2px; }
-        .prog-track { height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; }
-        .prog-fill { height: 100%; background: currentColor; }
-        
-        /* CLOCK */
-        .clock-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 4px 0; width: 100%; }
-        .clock-row:last-child { border: none; }
         
         /* CONTROLS */
         .block-controls { position: absolute; top: 5px; right: 5px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; z-index: 20; pointer-events: auto; }
         .widget-block:hover .block-controls { opacity: 1; }
-        .ctrl-btn { width: 24px; height: 24px; border-radius: 4px; border: 1px solid #ccc; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #555; }
+        .ctrl-btn { width: 26px; height: 26px; border-radius: 4px; border: 1px solid #ccc; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #555; }
         .ctrl-btn:hover { background: #f0f0f0; }
         .ctrl-del { color: #c0392b; background: #fadbd8; border-color: #e6b0aa; }
         
@@ -99,7 +77,7 @@
         .add-btn { padding: 8px 12px; border: none; border-radius: 4px; font-weight: 600; font-size: 0.75rem; color: white; cursor: pointer; transition: transform 0.1s; }
         .add-btn:hover { transform: translateY(-1px); opacity: 0.9; }
         
-        /* COLORS */
+        /* FOOTER COLORS */
         .c-text { background: #7f8c8d; } .c-date { background: #16a085; } .c-time { background: #27ae60; }
         .c-grid { background: #6aa84f; } .c-auto { background: #c0392b; } .c-custom { background: #d35400; }
         .c-cycle { background: #e67e22; } .c-count { background: #f39c12; } .c-timer { background: #8e44ad; }
@@ -108,32 +86,46 @@
 
         /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
-        .modal-card { background: white; width: 95%; max-width: 500px; border-radius: 8px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; }
-        .modal-header { padding: 15px 20px; background: #f8f9fa; border-bottom: 1px solid #eee; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
-        .modal-body { padding: 20px; overflow-y: auto; flex-grow: 1; }
-        .modal-footer { padding: 15px 20px; border-top: 1px solid #eee; text-align: right; background: #fff; }
+        .modal-card { background: white; width: 95%; max-width: 550px; border-radius: 8px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; }
+        .modal-header { padding: 15px 20px; background: #f8f9fa; border-bottom: 1px solid #eee; font-weight: 700; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .modal-body { padding: 25px; overflow-y: auto; flex-grow: 1; }
+        .modal-footer { padding: 15px 20px; border-top: 1px solid #eee; text-align: right; background: #fff; flex-shrink: 0; }
         
         /* FORM */
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.75rem; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem; background: #fff; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem; background: #fff; }
         .row { display: flex; gap: 15px; } .col { flex: 1; }
-        
-        /* SUB-LISTS */
-        .sub-list { border: 1px solid #eee; border-radius: 4px; padding: 10px; background: #fafafa; margin-bottom: 10px; }
-        .sub-item { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; background: #fff; padding: 5px; border: 1px solid #eee; border-radius: 4px; }
-        .btn-mini { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; color: #555; }
-        .btn-add-row { width: 100%; padding: 10px; background: #eef0f2; border: 1px dashed #ccc; border-radius: 4px; cursor: pointer; font-weight: 600; color: #666; }
         
         /* BUTTONS */
         button.btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: 600; font-size: 0.8rem; cursor: pointer; color: white; }
         .btn-blue { background: #3498db; } .btn-green { background: #27ae60; } .btn-grey { background: #7f8c8d; }
-        .link-textarea { width: 100%; height: 60px; font-family: monospace; font-size: 0.75rem; border: 1px solid #ddd; padding: 8px; resize: none; word-break: break-all; }
+        .link-textarea { width: 100%; height: 60px; font-family: monospace; font-size: 0.75rem; border: 1px solid #ddd; padding: 8px; resize: none; word-break: break-all; white-space: pre-wrap; }
+        
+        /* SUB-ITEMS (City/Date Lists) */
+        .sub-list { border: 1px solid #eee; border-radius: 4px; padding: 10px; background: #fafafa; margin-bottom: 10px; }
+        .sub-item { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; background: #fff; padding: 5px; border: 1px solid #eee; border-radius: 4px; }
+        .btn-mini { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; color: #555; font-size:12px; font-weight:bold; }
+        .btn-add-row { width: 100%; padding: 8px; background: #eef0f2; border: 1px dashed #ccc; border-radius: 4px; cursor: pointer; font-weight: 600; color: #666; }
         
         /* CITY SEARCH */
-        .city-results { max-height: 100px; overflow-y: auto; border: 1px solid #ddd; margin-top: 5px; display: none; }
-        .city-item { padding: 5px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 0.85rem; }
+        .city-results { max-height: 120px; overflow-y: auto; border: 1px solid #ddd; margin-top: 5px; display: none; background:white; position:absolute; width:100%; z-index:100; box-shadow:0 4px 8px rgba(0,0,0,0.1); }
+        .city-item { padding: 8px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 0.85rem; }
         .city-item:hover { background: #f0f0f0; }
+        
+        /* RENDER STYLES (Shared) */
+        .txt-lg { font-size: 1.5em; font-weight: 700; line-height: 1.1; }
+        .txt-sub { font-size: 0.85em; opacity: 0.8; }
+        .txt-label { font-size: 0.7em; text-transform: uppercase; opacity: 0.6; font-weight: 600; margin-bottom: 4px; }
+        .grid-container { display: flex; flex-wrap: wrap; gap: 2px; }
+        .grid-cell { border-radius: 1px; flex-shrink: 0; opacity: 0.15; background: currentColor; }
+        .grid-cell.filled { opacity: 0.9; }
+        .prog-row { margin-bottom: 6px; width: 100%; }
+        .prog-track { height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; }
+        .prog-fill { height: 100%; background: currentColor; }
+        .clock-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 4px 0; width: 100%; }
+        .clock-row:last-child { border: none; }
+        .spacer-line { width: 100%; opacity: 0.5; }
     </style>
 </head>
 <body>
@@ -153,7 +145,7 @@
         </div>
         
         <div class="settings-toggle" onclick="togglePanel('settings-panel')">
-            ▼ General Settings 
+            <span>▼</span> General Settings 
         </div>
         <div id="settings-panel" class="panel">
             <div class="panel-grid">
@@ -169,7 +161,7 @@
 
     <div class="canvas-area" id="canvas-area" onmousemove="handleDrag(event)" onmouseup="stopDrag()">
         <div class="canvas-watermark">Block Space</div>
-        </div>
+    </div>
 
     <div class="app-footer">
         <div class="footer-label">Add Block</div>
@@ -196,7 +188,7 @@
 
 <div class="modal-overlay" id="modal-overlay">
     <div class="modal-card">
-        <div class="modal-header"><span id="modal-title">Edit Block</span><span style="cursor:pointer" onclick="closeModal()">✕</span></div>
+        <div class="modal-header"><span id="modal-title">Settings</span><span style="cursor:pointer" onclick="closeModal()">✕</span></div>
         <div class="modal-body" id="modal-content"></div>
         <div class="modal-footer"><button class="btn btn-blue" onclick="saveModal()">Done</button></div>
     </div>
@@ -214,8 +206,9 @@
     const cityDB = [
         {name:"London",tz:"Europe/London"}, {name:"New York",tz:"America/New_York"}, {name:"Tokyo",tz:"Asia/Tokyo"},
         {name:"Paris",tz:"Europe/Paris"}, {name:"Sydney",tz:"Australia/Sydney"}, {name:"Dubai",tz:"Asia/Dubai"},
-        {name:"Los Angeles",tz:"America/Los_Angeles"}, {name:"Hong Kong",tz:"Asia/Hong_Kong"}, {name:"Singapore",tz:"Asia/Singapore"}
-    ]; // Simplified for stability, real app would have 300+
+        {name:"Los Angeles",tz:"America/Los_Angeles"}, {name:"Hong Kong",tz:"Asia/Hong_Kong"}, {name:"Singapore",tz:"Asia/Singapore"},
+        {name:"Berlin",tz:"Europe/Berlin"}, {name:"Toronto",tz:"America/Toronto"}, {name:"Mumbai",tz:"Asia/Kolkata"}
+    ];
     
     const dateTokens = [
         {val: 'day_name_full', txt: 'Day Name (Monday)'}, {val: 'day_name_short', txt: 'Day (Mon)'},
@@ -226,15 +219,14 @@
     ];
     
     const colorPalette = [
-        {val:'default', hex:'#FFFFFF', name:'Default (White)'}, // Background default
+        {val:'default', hex:'#FFFFFF', name:'Default (White)'},
         {val:'#5b5b5b', hex:'#5b5b5b', name:'Dark Grey'}, {val:'#f0f0f0', hex:'#f0f0f0', name:'Light Grey'},
-        {val:'#ffebee', hex:'#ffebee', name:'Pale Red'}, {val:'#e3f2fd', hex:'#e3f2fd', name:'Pale Blue'},
-        {val:'#e8f5e9', hex:'#e8f5e9', name:'Pale Green'}, {val:'#fff3e0', hex:'#fff3e0', name:'Pale Orange'},
         {val:'#3498db', hex:'#3498db', name:'Blue'}, {val:'#27ae60', hex:'#27ae60', name:'Green'},
-        {val:'#c0392b', hex:'#c0392b', name:'Red'}, {val:'#8e44ad', hex:'#8e44ad', name:'Purple'}
+        {val:'#c0392b', hex:'#c0392b', name:'Red'}, {val:'#f39c12', hex:'#f39c12', name:'Orange'},
+        {val:'#8e44ad', hex:'#8e44ad', name:'Purple'}, {val:'#34495e', hex:'#34495e', name:'Navy'}
     ];
 
-    // --- ENCODING ---
+    // --- UTILS ---
     function encode(obj) { return window.btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
     function decode(str) { try { return JSON.parse(decodeURIComponent(escape(window.atob(str)))); } catch(e) { return null; } }
 
@@ -248,9 +240,9 @@
             } else {
                 blocks = [{type: 'header', text: 'Welcome', width: 50, height: 100, id: 'b1'}];
             }
-        } catch(e) { blocks = []; }
+        } catch(e) {}
         
-        // Sync Inputs
+        // Sync Global Inputs
         document.getElementById('s-time').value = settings.use24h;
         document.getElementById('s-week').value = settings.weekStart;
         document.getElementById('s-theme').value = settings.theme;
@@ -263,21 +255,19 @@
         updateLink();
     }
 
-    // --- GLOBAL STYLES (Live Preview) ---
     function updateGlobalStyles() {
         const r = document.documentElement;
         r.style.setProperty('--font', settings.font === 'serif' ? 'Georgia' : settings.font === 'mono' ? 'monospace' : 'sans-serif');
         r.style.setProperty('--pad', settings.padding === 'compact' ? '0.5rem' : settings.padding === 'spacious' ? '1.5rem' : '1rem');
         r.style.setProperty('--base-size', settings.textSize === 'small' ? '14px' : settings.textSize === 'large' ? '18px' : '16px');
-        
         const area = document.getElementById('canvas-area');
-        if(settings.theme === 'card') { area.style.gap = '15px'; }
-        else if(settings.theme === 'minimal') { area.style.gap = '5px'; }
+        area.style.gap = settings.theme === 'card' ? '15px' : '10px';
     }
 
-    // --- THE SMART RENDERER (Shared Logic) ---
+    // --- SMART RENDERER (The Shared Brain) ---
     function renderBlockContent(b) {
         let h = '';
+        let acc = b.accentColor || '#3498db';
         
         if(b.type === 'header') h = `<div class="txt-lg">${b.text}</div>`;
         else if(b.type === 'date_display') {
@@ -291,7 +281,6 @@
                     let ts = new Date().toLocaleTimeString('en-US', timeOpt);
                     let ds = b.showDate ? new Date().toLocaleDateString('en-US', {weekday:'short', day:'numeric'}) : '';
                     let tz = b.showTimezone ? `<span style="opacity:0.5;font-size:0.7em">(${loc.timezone.split('/')[1]})</span>` : '';
-                    
                     h += `<div class="clock-row">
                         <div><div style="font-weight:600">${loc.label} ${tz}</div><div style="font-size:0.7em;opacity:0.7">${ds}</div></div>
                         <div class="txt-lg" style="font-family:monospace">${ts}</div>
@@ -300,38 +289,29 @@
             }
         }
         else if(b.type === 'visual_grid') {
-            // Visual Grid Logic
-            let color = b.accentColor || '#6aa84f';
             let size = b.blockSize === '24px' ? 24 : 14;
             h = `<div class="txt-label">${b.gridType} Grid</div><div class="grid-container">`;
             for(let i=0; i<30; i++) {
-                h += `<div class="grid-cell ${i<10?'filled':''}" style="width:${size}px;height:${size}px;color:${color}"></div>`;
+                h += `<div class="grid-cell ${i<10?'filled':''}" style="width:${size}px;height:${size}px;color:${acc}"></div>`;
             }
             h += `</div>`;
         }
         else if(b.type === 'progress_group') {
-            let color = b.accentColor || '#3498db';
             if(b.items) b.items.forEach(it => {
                 if(it.visible !== false) {
-                    h += `<div class="prog-row"><div class="prog-meta"><span>${it.label}</span><span>45%</span></div><div class="prog-track"><div class="prog-fill" style="width:45%;color:${color}"></div></div></div>`;
+                    h += `<div class="prog-row"><div class="prog-meta"><span>${it.label}</span><span>45%</span></div><div class="prog-track"><div class="prog-fill" style="width:45%;color:${acc}"></div></div></div>`;
                 }
             });
         }
         else if(b.type === 'countdown') {
-            let color = b.accentColor || '#f39c12';
-            let diff = 5; // Mock
-            h = `<div style="display:flex;justify-content:space-between;align-items:center;background:${color}20;padding:10px;border-radius:6px;width:100%">
-                <span style="font-weight:600">${b.label}</span><span style="font-size:1.2em;font-weight:bold;color:${color}">${diff} Days</span>
+            h = `<div style="display:flex;justify-content:space-between;align-items:center;background:${acc}20;padding:10px;border-radius:6px;width:100%">
+                <span style="font-weight:600">${b.label}</span><span style="font-size:1.2em;font-weight:bold;color:${acc}">-- Days</span>
             </div>`;
         }
         else if(b.type === 'spacer') {
-            let col = b.accentColor || '#ccc';
-            h = `<div style="width:100%;border-bottom:${b.thickness||'2px'} ${b.style||'solid'} ${col};opacity:0.5"></div>`;
+            h = `<div class="spacer-line" style="border-bottom:${b.thickness||'2px'} ${b.style||'solid'} ${acc}"></div>`;
         }
-        else if(b.type === 'empty') {
-            // Empty renders nothing visual
-        }
-        else {
+        else if(b.type !== 'empty') {
             h = `<div class="txt-label">${b.type.replace('_',' ')}</div><div class="txt-lg">${b.label||''}</div>`;
         }
         return h;
@@ -339,45 +319,45 @@
     
     function buildDate(tokens) {
         if(!tokens) return '';
+        const now = new Date();
         return tokens.map(t => {
-            if(t === 'space') return ' ';
-            if(t === 'separator') return '|';
-            if(t === 'date_num') return '28';
-            if(t === 'day_name_full') return 'Monday';
-            return t.replace('_',' '); 
+            if(t==='day_name_full') return now.toLocaleDateString([], {weekday:'long'});
+            if(t==='date_num') return now.getDate();
+            if(t==='month_full') return now.toLocaleDateString([], {month:'long'});
+            if(t==='space') return ' ';
+            if(t==='separator') return '|';
+            if(t==='day_year') {
+                const start = new Date(now.getFullYear(), 0, 0);
+                const diff = now - start;
+                const day = Math.floor(diff / (1000 * 60 * 60 * 24));
+                return `Day ${day}/365`;
+            }
+            return t;
         }).join('');
     }
 
-    // --- RENDER ENGINE ---
+    // --- RENDER ---
     function render() {
         const area = document.getElementById('canvas-area');
-        area.innerHTML = '<div class="canvas-watermark">Block Space</div>'; // Reset
+        // Clear blocks only
+        const existing = area.querySelectorAll('.widget-block');
+        existing.forEach(el => el.remove());
 
         blocks.forEach((b, i) => {
             if(!b.id) b.id = 'blk_' + Math.random().toString(36).substr(2,9);
-            
             const div = document.createElement('div');
             div.className = 'widget-block';
             div.id = `card-${i}`;
             div.draggable = true;
             div.dataset.index = i;
             
-            // Layout
-            let w = b.width || 50;
-            let h = b.height || 100;
-            div.style.width = `calc(${w}% - 10px)`;
-            div.style.height = `${h}px`;
+            div.style.width = `calc(${b.width}% - 10px)`;
+            div.style.height = `${b.height}px`;
             
             // 3-Tier Colors
             let bg = b.bgColor || '#ffffff';
             let txt = b.textColor || '#333333';
-            
-            // Empty Block Special
-            if(b.type === 'empty') { 
-                bg = 'transparent'; 
-                div.style.borderStyle = 'dashed'; 
-                div.style.opacity = '0.5';
-            }
+            if(b.type === 'empty') { bg = 'transparent'; div.style.borderStyle = 'dashed'; div.style.opacity = '0.5'; }
             
             div.innerHTML = `
                 <div class="block-controls">
@@ -391,34 +371,33 @@
                 <div class="resize-w" onmousedown="initResize(${i}, 'w', event)"></div>
                 <div class="resize-h" onmousedown="initResize(${i}, 'h', event)"></div>
             `;
-            
             area.appendChild(div);
         });
-        
         addDragListeners();
     }
 
-    // --- ACTIONS ---
+    // --- DRAG/DROP/RESIZE/ACTIONS ---
     window.addBlock = (type) => {
         let b = { type: type, width: 50, height: 100, id: 'b_'+Date.now() };
-        // Defaults
-        if(type==='header') { b.text = 'Header Text'; b.height = 60; }
-        if(type==='world_clock') { b.locations = [{label:'London', timezone:'Europe/London'}]; b.height = 100; b.showSeconds = false; b.showDate = true; }
-        if(type==='date_display') { b.line1 = ['day_name_full']; b.line2 = ['date_num','month_full']; b.height = 80; }
-        if(type==='progress_group') { b.items = [{type:'year', label:'Year', visible:true}]; b.height = 120; }
-        if(type==='spacer') b.height = 30;
+        // Feature Defaults
+        if(type==='header') { b.text='Text'; b.height=60; }
+        if(type==='world_clock') { b.locations=[{label:'London',timezone:'Europe/London'}]; b.height=100; }
+        if(type==='date_display') { b.line1=['day_name_full']; b.line2=['date_num','month_full']; b.height=80; }
+        if(type==='progress_group') { b.items=[{type:'year',label:'Year',visible:true}]; b.height=120; }
+        if(type==='sequence') b.steps = [{label:'Step 1', duration:15}];
+        if(type==='spacer') b.height=30;
         
         blocks.push(b); render(); updateLink();
+        setTimeout(() => { const c = document.getElementById('canvas-area'); c.scrollTop = c.scrollHeight; }, 50);
     };
-
+    
     window.deleteBlock = (i) => { blocks.splice(i, 1); render(); updateLink(); };
     window.quickResize = (i) => {
-        const w = blocks[i].width || 50;
+        let w = blocks[i].width || 50;
         blocks[i].width = w >= 100 ? 25 : w >= 75 ? 100 : w >= 50 ? 75 : 50;
         render(); updateLink();
     };
 
-    // --- DRAG/RESIZE (Standard V63 Logic) ---
     window.initResize = (i, mode, e) => {
         e.stopPropagation(); resizingIndex = i; resizeMode = mode;
         startX = e.clientX; startY = e.clientY;
@@ -440,18 +419,16 @@
     };
     window.stopDrag = () => { if(resizingIndex !== -1) { resizingIndex = -1; document.body.style.cursor = 'default'; updateLink(); } };
 
-    // --- REORDER ---
     let dragSrc = null;
     function addDragListeners() {
         document.querySelectorAll('.widget-block').forEach(item => {
-            item.addEventListener('dragstart', function(e) { dragSrc = this; this.style.opacity = '0.4'; e.dataTransfer.effectAllowed = 'move'; });
-            item.addEventListener('dragend', function() { this.style.opacity = '1'; });
+            item.addEventListener('dragstart', function(e) { dragSrc = this; e.dataTransfer.effectAllowed = 'move'; this.classList.add('dragging'); });
+            item.addEventListener('dragend', function() { this.classList.remove('dragging'); });
             item.addEventListener('dragover', function(e) { e.preventDefault(); return false; });
             item.addEventListener('drop', function(e) {
                 e.stopPropagation();
                 if (dragSrc !== this) {
-                    const s = parseInt(dragSrc.dataset.index);
-                    const d = parseInt(this.dataset.index);
+                    const s = parseInt(dragSrc.dataset.index); const d = parseInt(this.dataset.index);
                     const t = blocks[s]; blocks.splice(s, 1); blocks.splice(d, 0, t);
                     render(); updateLink();
                 }
@@ -466,9 +443,10 @@
         const b = blocks[i];
         const c = document.getElementById('modal-content');
         let title = b.type.replace('_',' ').toUpperCase();
-        if(b.type === 'world_clock') title = 'TIME';
+        if(b.type==='world_clock') title='TIME'; if(b.type==='progress_custom') title='CUSTOM PROGRESS'; if(b.type==='empty') title='EMPTY';
         document.getElementById('modal-title').innerText = `EDIT ${title}`;
         
+        // GENERIC FIELDS (Size + Label)
         let h = `<div class="form-group"><div class="row">
             <div class="col"><label>Width %</label><input type="number" id="in-w" value="${Math.round(b.width||50)}"></div>
             <div class="col"><label>Height px</label><input type="number" id="in-h" value="${Math.round(b.height||100)}"></div>
@@ -478,35 +456,37 @@
             h += `<div class="form-group"><label>Label</label><input id="in-lbl" value="${b.label||''}"></div>`;
         }
         
-        // 3 COLORS
+        // 3-TIER COLORS
         h += `<div class="form-group"><div class="row">
-            <div class="col"><label>Background</label><input type="color" id="in-bg" value="${b.bgColor||'#ffffff'}" style="height:40px;padding:0"></div>
-            <div class="col"><label>Text</label><input type="color" id="in-txt" value="${b.textColor||'#333333'}" style="height:40px;padding:0"></div>
-            <div class="col"><label>Accent</label><input type="color" id="in-acc" value="${b.accentColor||'#3498db'}" style="height:40px;padding:0"></div>
+            <div class="col"><label>Background</label>${renderColorControl('bg', b.bgColor||'#ffffff')}</div>
+            <div class="col"><label>Text</label>${renderColorControl('txt', b.textColor||'#333333')}</div>
+            <div class="col"><label>Accent</label>${renderColorControl('acc', b.accentColor||'#3498db')}</div>
         </div></div>`;
 
         // BLOCK SPECIFIC
-        if(b.type === 'header') h += `<div class="form-group"><label>Content</label><input id="in-text" value="${b.text}"></div>`;
-        if(b.type === 'world_clock') {
-            h += `<div class="form-group"><label>Settings</label>
-            <div style="display:flex;gap:15px">
-                <label style="display:flex;align-items:center"><input type="checkbox" id="in-sec" ${b.showSeconds?'checked':''} style="width:auto;margin-right:5px"> Seconds</label>
-                <label style="display:flex;align-items:center"><input type="checkbox" id="in-dt" ${b.showDate?'checked':''} style="width:auto;margin-right:5px"> Date</label>
-                <label style="display:flex;align-items:center"><input type="checkbox" id="in-tz" ${b.showTimezone?'checked':''} style="width:auto;margin-right:5px"> Timezone</label>
-            </div></div>
-            <div class="form-group"><label>Cities</label><div class="sub-list" id="mod-cities"></div>
-            <div style="display:flex;gap:5px"><input id="new-city-search" placeholder="Search City..."><button class="btn-mini" onclick="addCity()">+</button></div>
-            <div id="city-res" class="city-results"></div></div>`;
+        if(b.type==='header') h += `<div class="form-group"><label>Text</label><input id="in-text" value="${b.text}"></div>`;
+        if(b.type==='world_clock') {
+            h += `<div class="form-group"><label>Options</label>
+            <div style="display:flex;gap:15px;margin-bottom:10px">
+                <label><input type="checkbox" id="in-sec" ${b.showSeconds?'checked':''}> Seconds</label>
+                <label><input type="checkbox" id="in-dt" ${b.showDate?'checked':''}> Date</label>
+                <label><input type="checkbox" id="in-tz" ${b.showTimezone?'checked':''}> Timezone</label>
+            </div>
+            <label>Cities</label><div class="sub-list" id="mod-cities"></div>
+            <div style="position:relative"><input id="city-search" placeholder="Add City..."><div id="city-res" class="city-results"></div></div></div>`;
         }
+        if(b.type==='date_display') h += `<div class="form-group"><label>Line 1</label><div class="sub-list" id="mod-l1"></div><button class="btn-add-row" onclick="addDateToken('line1')">+ Element</button></div><div class="form-group"><label>Line 2</label><div class="sub-list" id="mod-l2"></div><button class="btn-add-row" onclick="addDateToken('line2')">+ Element</button></div>`;
+        if(b.type==='progress_group') h += `<div class="form-group"><label>Items</label><div class="sub-list" id="mod-prog-list"></div></div>`;
+        if(b.type==='sequence') h += `<div class="form-group"><label>Steps</label><div class="sub-list" id="mod-steps"></div><button class="btn-add-row" onclick="addStep()">+ Step</button></div>`;
         
         c.innerHTML = h;
         
-        // Logic binding for City Search
-        if(b.type === 'world_clock') {
-            renderModalCities(b.locations);
-            bindCitySearch();
-        }
-
+        // POST RENDER BINDING
+        if(b.type==='world_clock') { renderModalCities(); bindCitySearch(); }
+        if(b.type==='date_display') { renderDateList('mod-l1', b.line1); renderDateList('mod-l2', b.line2); }
+        if(b.type==='progress_group') renderProgressList();
+        if(b.type==='sequence') renderStepList();
+        
         document.getElementById('modal-overlay').style.display = 'flex';
     };
 
@@ -514,53 +494,96 @@
         const b = blocks[editingIndex];
         b.width = parseFloat(document.getElementById('in-w').value);
         b.height = parseFloat(document.getElementById('in-h').value);
-        b.bgColor = document.getElementById('in-bg').value;
-        b.textColor = document.getElementById('in-txt').value;
-        b.accentColor = document.getElementById('in-acc').value;
+        b.bgColor = getColorVal('bg');
+        b.textColor = getColorVal('txt');
+        b.accentColor = getColorVal('acc');
         
-        const lbl = document.getElementById('in-lbl'); if(lbl) b.label = lbl.value;
-        const txt = document.getElementById('in-text'); if(txt) b.text = txt.value;
+        if(document.getElementById('in-lbl')) b.label = document.getElementById('in-lbl').value;
+        if(document.getElementById('in-text')) b.text = document.getElementById('in-text').value;
         
-        if(b.type === 'world_clock') {
+        if(b.type==='world_clock') {
             b.showSeconds = document.getElementById('in-sec').checked;
             b.showDate = document.getElementById('in-dt').checked;
             b.showTimezone = document.getElementById('in-tz').checked;
         }
-
+        
         render(); updateLink(); closeModal();
     };
-
     window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
 
-    // --- CITY SEARCH LOGIC ---
-    function renderModalCities(locs) {
+    // COLOR HELPER (Dual Control)
+    function renderColorControl(prefix, val) {
+        let opts = colorPalette.map(c => `<option value="${c.hex}" ${val===c.hex?'selected':''}>${c.name}</option>`).join('');
+        opts += `<option value="custom" ${!colorPalette.find(c=>c.hex===val)?'selected':''}>Custom</option>`;
+        return `<select id="sel-${prefix}" onchange="syncColor('${prefix}', 'sel')">${opts}</select>
+                <input type="color" id="pick-${prefix}" value="${val}" style="width:100%;height:30px;padding:0;margin-top:5px" onchange="syncColor('${prefix}', 'pick')">`;
+    }
+    window.syncColor = (prefix, source) => {
+        const sel = document.getElementById(`sel-${prefix}`);
+        const pick = document.getElementById(`pick-${prefix}`);
+        if(source === 'sel') {
+            if(sel.value !== 'custom') pick.value = sel.value;
+        } else {
+            sel.value = 'custom';
+        }
+    };
+    function getColorVal(prefix) { return document.getElementById(`pick-${prefix}`).value; }
+
+    // --- COMPLEX BLOCK LOGIC ---
+    // CITIES
+    function renderModalCities() {
         const c = document.getElementById('mod-cities'); c.innerHTML = '';
-        locs.forEach((loc, i) => {
-            c.innerHTML += `<div class="sub-item"><input value="${loc.label}" oninput="blocks[editingIndex].locations[${i}].label=this.value"><button class="btn-mini btn-mini-del" onclick="removeCity(${i})">×</button></div>`;
+        blocks[editingIndex].locations.forEach((loc, i) => {
+            c.innerHTML += `<div class="sub-item"><button class="btn-mini" onclick="moveItem('locations',${i},-1)">↑</button><input value="${loc.label}" oninput="blocks[editingIndex].locations[${i}].label=this.value"><button class="btn-mini btn-mini-del" onclick="removeItem('locations',${i})">×</button></div>`;
         });
     }
-    window.removeCity = (i) => { blocks[editingIndex].locations.splice(i, 1); editBlock(editingIndex); };
-    
     function bindCitySearch() {
-        const inp = document.getElementById('new-city-search');
-        const res = document.getElementById('city-res');
+        const inp = document.getElementById('city-search'); const res = document.getElementById('city-res');
         inp.oninput = () => {
-            const v = inp.value.toLowerCase();
-            res.innerHTML = ''; res.style.display = 'none';
-            if(v.length < 2) return;
-            const matches = cityDB.filter(c => c.name.toLowerCase().includes(v));
-            if(matches.length) {
-                res.style.display = 'block';
-                matches.forEach(m => {
-                    res.innerHTML += `<div class="city-item" onclick="selectCity('${m.name}','${m.tz}')">${m.name}</div>`;
-                });
-            }
+            const v = inp.value.toLowerCase(); res.innerHTML=''; res.style.display='none';
+            if(v.length<2) return;
+            const m = cityDB.filter(c=>c.name.toLowerCase().includes(v));
+            if(m.length) { res.style.display='block'; m.forEach(x => { res.innerHTML += `<div class="city-item" onclick="addCity('${x.name}','${x.tz}')">${x.name}</div>`; }); }
         };
     }
-    window.selectCity = (name, tz) => {
-        blocks[editingIndex].locations.push({label:name, timezone:tz});
-        editBlock(editingIndex);
+    window.addCity = (n, t) => { blocks[editingIndex].locations.push({label:n, timezone:t}); editBlock(editingIndex); };
+
+    // DATES
+    function renderDateList(id, arr) {
+        const c = document.getElementById(id); c.innerHTML = '';
+        arr.forEach((t, i) => {
+            let val = typeof t === 'string' ? t : t.type;
+            let opts = dateTokens.map(dt => `<option value="${dt.val}" ${val===dt.val?'selected':''}>${dt.txt}</option>`).join('');
+            c.innerHTML += `<div class="sub-item"><button class="btn-mini" onclick="moveDate('${id}',${i},-1)">↑</button><select onchange="updateDate('${id}',${i},this.value)">${opts}</select><button class="btn-mini btn-mini-del" onclick="removeDate('${id}',${i})">×</button></div>`;
+        });
+    }
+    window.addDateToken = (id) => { let k = id==='mod-l1'?'line1':'line2'; blocks[editingIndex][k].push('space'); editBlock(editingIndex); };
+    window.removeDate = (id, i) => { let k = id==='mod-l1'?'line1':'line2'; blocks[editingIndex][k].splice(i, 1); editBlock(editingIndex); };
+    window.updateDate = (id, i, v) => { let k = id==='mod-l1'?'line1':'line2'; blocks[editingIndex][k][i] = v; };
+    window.moveDate = (id, i, dir) => {
+        let k = id==='mod-l1'?'line1':'line2'; let arr = blocks[editingIndex][k];
+        if (i+dir >= 0 && i+dir < arr.length) { [arr[i], arr[i+dir]] = [arr[i+dir], arr[i]]; editBlock(editingIndex); }
     };
+
+    // PROGRESS
+    function renderProgressList() {
+        const c = document.getElementById('mod-prog-list'); c.innerHTML='';
+        blocks[editingIndex].items.forEach((it, i) => {
+            c.innerHTML += `<div class="sub-item"><input type="checkbox" ${it.visible!==false?'checked':''} onchange="blocks[editingIndex].items[${i}].visible=this.checked"><span style="font-size:0.8rem;width:50px">${it.type}</span><input value="${it.label}" oninput="blocks[editingIndex].items[${i}].label=this.value"></div>`;
+        });
+    }
+
+    // SEQUENCE
+    function renderStepList() {
+        const c = document.getElementById('mod-steps'); c.innerHTML='';
+        blocks[editingIndex].steps.forEach((s, i) => {
+            c.innerHTML += `<div class="sub-item"><button class="btn-mini" onclick="moveItem('steps',${i},-1)">↑</button><input value="${s.label}" oninput="blocks[editingIndex].steps[${i}].label=this.value"><input type="number" value="${s.duration}" style="width:60px" oninput="blocks[editingIndex].steps[${i}].duration=this.value"><button class="btn-mini btn-mini-del" onclick="removeItem('steps',${i})">×</button></div>`;
+        });
+    }
+    window.addStep = () => { blocks[editingIndex].steps.push({label:'Step', duration:10}); editBlock(editingIndex); };
+
+    window.removeItem = (k, i) => { blocks[editingIndex][k].splice(i, 1); editBlock(editingIndex); };
+    window.moveItem = (k, i, dir) => { let arr = blocks[editingIndex][k]; if (i+dir >= 0 && i+dir < arr.length) { [arr[i], arr[i+dir]] = [arr[i+dir], arr[i]]; editBlock(editingIndex); } };
 
     // --- GLOBAL ---
     window.updateGlobal = () => {
@@ -572,7 +595,7 @@
         settings.padding = document.getElementById('s-pad').value;
         updateGlobalStyles(); updateLink();
     };
-
+    
     window.togglePanel = (id) => document.getElementById(id).classList.toggle('open');
     window.updateLink = () => {
         const json = JSON.stringify({ settings, blocks });
@@ -581,7 +604,6 @@
         document.getElementById('result-url').value = `${url}#${hash}`;
         window.history.replaceState(null, null, `#${hash}`);
     };
-    
     window.refresh = () => render();
     window.copyLink = () => { document.getElementById('result-url').select(); document.navigator.clipboard.writeText(document.getElementById('result-url').value); };
     window.openLink = () => window.open(document.getElementById('result-url').value, '_blank');
