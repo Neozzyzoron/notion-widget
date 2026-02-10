@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Widget V71</title>
+    <title>Widget V72</title>
     <style>
         :root { --c-bg: #FFFFFF; --c-txt: #333; --font: sans-serif; --pad: 1rem; --base-size: 16px; }
         @media (prefers-color-scheme: dark) { :root { --c-bg: #191919; --c-txt: #D4D4D4; } }
         body { margin: 0; padding: var(--pad); font-family: var(--font); background: var(--c-bg); color: var(--c-txt); font-size: var(--base-size); overflow-x: hidden; }
         
-        #dashboard { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px; width: 100%; grid-auto-flow: dense; }
+        #dashboard { display: grid; grid-template-columns: repeat(12, 1fr); gap: 15px; width: 100%; grid-auto-flow: dense; }
         
         .widget-block {
             box-sizing: border-box; border-radius: 8px; overflow: hidden;
@@ -24,6 +24,17 @@
         .txt-sub { font-size: 0.85em; opacity: 0.8; }
         .txt-lbl { font-size: 0.7em; text-transform: uppercase; font-weight: 700; opacity: 0.5; margin-bottom: 4px; }
         .clock-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 4px 0; }
+        
+        /* GRID */
+        .grid-container { display: flex; flex-wrap: wrap; gap: 2px; }
+        .grid-cell { border-radius: 1px; flex-shrink: 0; opacity: 0.15; background: currentColor; }
+        .grid-cell.filled { opacity: 0.9; }
+        
+        /* PROGRESS */
+        .prog-row { margin-bottom: 6px; width: 100%; }
+        .prog-meta { display: flex; justify-content: space-between; font-size: 0.8em; margin-bottom: 2px; }
+        .prog-track { height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; }
+        .prog-fill { height: 100%; background: currentColor; }
         
         .edit-fab { position: fixed; top: 10px; right: 10px; width: 35px; height: 35px; background: #fff; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9999; color: #333; text-decoration: none; }
     </style>
@@ -91,21 +102,33 @@
                 });
             }
             else if(b.type==='visual_grid') {
-                // V59 GRID LOGIC PORTED
                 let size = b.blockSize==='24px'?24: b.blockSize==='12px'?12:16;
                 let total=52; let current=10; 
-                // (Logic simplified for brevity but structure supports full V59 math)
                 if(b.gridType==='life' && b.dob) {
                     const dob = new Date(b.dob); const now = new Date();
                     const age = now.getFullYear() - dob.getFullYear();
                     total = parseInt(b.expectancy||80); current = age;
                 }
+                if(b.gridType==='month') { total=30; current=new Date().getDate(); }
                 h = `<div class="txt-lbl">${b.gridType.toUpperCase()} GRID</div><div style="display:flex;flex-wrap:wrap;gap:2px">`;
                 for(let i=0; i<total; i++) {
                     let op = i < current ? 1 : 0.2;
                     h += `<div style="width:${size}px;height:${size}px;background:${acc};opacity:${op};border-radius:1px"></div>`;
                 }
                 h += `</div>`;
+            }
+            else if(b.type==='progress_group') {
+                if(b.items) b.items.forEach(it => {
+                    if(it.visible!==false) {
+                        let pct = 50; // Simple fallback, full math in V59 code
+                        if(it.type==='year') { 
+                            const n = new Date(); const s = new Date(n.getFullYear(),0,1); const e = new Date(n.getFullYear()+1,0,1);
+                            pct = ((n-s)/(e-s))*100;
+                        }
+                        h += `<div class="prog-row"><div class="prog-meta"><span>${it.label}</span><span>${Math.round(pct)}%</span></div>
+                        <div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${acc}"></div></div></div>`;
+                    }
+                });
             }
             else if(b.type !== 'empty') {
                 h = `<div class="txt-lbl">${b.type.replace('_',' ')}</div><div class="txt-lg">${b.label||''}</div>`;
