@@ -3,417 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Widget Builder V77 (React)</title>
-    
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
+    <title>Notion Widget Builder - Admin</title>
     <style>
-        :root { --bg: #f4f5f7; --panel: #fff; --border: #e0e0e0; --accent: #34495e; }
-        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); height: 100vh; overflow: hidden; }
-        
-        /* LAYOUT */
-        #root { height: 100%; display: flex; flex-direction: column; }
-        .main-body { flex: 1; display: flex; overflow: hidden; }
-        
-        /* HEADER */
-        .header { height: 50px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 10; }
-        .h-title { font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; }
-        
-        /* GLOBAL BAR */
-        .global-bar { background: #2c3e50; color: white; padding: 10px 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; font-size: 0.8rem; }
-        .global-bar select { background: #34495e; color: white; border: 1px solid #466075; padding: 4px; border-radius: 4px; width: 100%; }
-
-        /* CANVAS */
-        .canvas-area { flex: 1; overflow-y: auto; padding: 30px; padding-bottom: 150px; background: var(--bg); position: relative; }
-        .grid-layout {
-            display: grid;
-            grid-template-columns: repeat(12, 1fr);
-            grid-auto-rows: 10px; /* Base unit */
-            grid-gap: 15px;
-            grid-auto-flow: dense; /* The Stacking Magic */
-            max-width: 1400px; margin: 0 auto;
+        :root {
+            --bg: #ffffff; --text: #37352f; --accent: #2eaadc;
+            --grid-gap: 15px; --sidebar-w: 300px;
         }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif; margin: 0; background: #f7f6f3; color: var(--text); overflow-x: hidden; }
         
-        /* BLOCK */
-        .block {
-            background: #fff; border: 2px dashed #ccc; border-radius: 8px;
-            position: relative; display: flex; flex-direction: column; overflow: hidden;
-            transition: border-color 0.2s, box-shadow 0.2s; user-select: none;
+        /* Layout */
+        #header { background: #fff; border-bottom: 1px solid #e9e9e8; transition: max-height 0.3s ease; overflow: hidden; }
+        #header.collapsed { max-height: 40px; }
+        .header-handle { background: #37352f; color: #fff; padding: 5px 10px; cursor: pointer; font-size: 12px; text-align: center; }
+        .config-bar { padding: 15px; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; }
+        
+        #canvas { 
+            display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--grid-gap); 
+            padding: 20px; padding-bottom: 120px; min-height: 80vh; max-width: 1200px; margin: 0 auto;
         }
-        .block.selected { border: 2px solid #3498db; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 5; }
-        .block:hover { border-color: #999; }
-        .block-inner { flex: 1; padding: 15px; display: flex; flex-direction: column; justify-content: center; pointer-events: none; }
-        
-        .handle { position: absolute; z-index: 10; }
-        .handle-h { bottom: 0; left: 0; right: 0; height: 15px; cursor: row-resize; }
-        .handle-h:hover { background: rgba(52, 152, 219, 0.2); }
-        
-        .b-actions { position: absolute; top: 5px; right: 5px; display: none; gap: 4px; z-index: 20; }
-        .block:hover .b-actions { display: flex; }
-        
-        /* INSPECTOR */
-        .inspector { width: 320px; background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; z-index: 20; }
-        .insp-scroll { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 100px; }
-        .insp-head { font-weight: 700; text-transform: uppercase; font-size: 0.75rem; color: #888; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
-        
-        /* FORMS */
-        .f-group { margin-bottom: 15px; }
-        .f-lbl { display: block; font-size: 0.7rem; font-weight: 700; color: #555; margin-bottom: 5px; text-transform: uppercase; }
-        .f-in, .f-sel { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
-        .row { display: flex; gap: 10px; } .col { flex: 1; }
-        .btn { padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
-        .btn:hover { background: #f0f0f0; }
-        .btn-blue { background: #3498db; color: white; border: none; }
-        .btn-red { background: #fee; color: #c0392b; border-color: #fcc; }
-        
-        .list-item { display: flex; align-items: center; gap: 5px; margin-bottom: 5px; background: #f9f9f9; padding: 5px; border-radius: 4px; border: 1px solid #eee; }
-        .search-res { max-height: 120px; overflow-y: auto; border: 1px solid #ddd; margin-top: 5px; background: white; border-radius: 4px; }
-        .search-opt { padding: 6px; font-size: 0.85rem; cursor: pointer; border-bottom: 1px solid #f5f5f5; }
-        .search-opt:hover { background: #f0f0f0; }
 
-        /* FOOTER */
-        .footer { height: 100px; background: var(--panel); border-top: 1px solid var(--border); padding: 15px 20px; display: flex; flex-direction: column; justify-content: center; z-index: 30; }
-        .footer-scroll { overflow-x: auto; white-space: nowrap; display: flex; gap: 8px; padding-bottom: 5px; }
-        .pill { padding: 8px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; cursor: pointer; border: none; transition: transform 0.1s; }
-        .pill:hover { transform: translateY(-2px); }
-        
-        /* COLORS */
-        .c-1 { background: #7f8c8d; } .c-2 { background: #27ae60; } .c-3 { background: #2980b9; } 
-        .c-4 { background: #8e44ad; } .c-5 { background: #e67e22; } .c-6 { background: #c0392b; }
+        #footer-dock { 
+            position: fixed; bottom: 0; left: 0; right: 0; background: #fff; 
+            border-top: 1px solid #e9e9e8; padding: 10px; display: flex; 
+            overflow-x: auto; gap: 10px; z-index: 1000; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
 
-        /* RENDER UTILS */
-        .txt-lg { font-size: 1.6em; font-weight: 800; line-height: 1.1; }
-        .txt-sub { font-size: 0.9em; opacity: 0.7; }
-        .grid-wrap { display: flex; flex-wrap: wrap; gap: 2px; }
-        .grid-cell { border-radius: 1px; flex-shrink: 0; opacity: 0.15; }
-        .clock-row { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 4px 0; }
+        /* Blocks */
+        .block-wrapper { 
+            background: #fff; border-radius: 8px; border: 1px solid #e9e9e8; 
+            position: relative; min-height: 50px; transition: box-shadow 0.2s;
+            grid-column: span 12; /* Default */
+        }
+        .block-wrapper:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .controls { position: absolute; top: 5px; right: 5px; display: none; gap: 5px; z-index: 10; }
+        .block-wrapper:hover .controls { display: flex; }
+        .btn-small { padding: 2px 6px; cursor: pointer; font-size: 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px; }
+        
+        /* Resize Handles */
+        .handle-r { position: absolute; right: 0; top: 0; bottom: 0; width: 10px; cursor: ew-resize; }
+        .handle-b { position: absolute; bottom: 0; left: 0; right: 0; height: 10px; cursor: ns-resize; }
+
+        /* Modal & Warehouse */
+        #modal-overlay { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); 
+            display: none; justify-content: center; align-items: center; z-index: 2000; 
+        }
+        #modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; }
+        #warehouse { display: none; }
+        
+        .url-box { width: 100%; height: 60px; font-family: monospace; font-size: 11px; margin-bottom: 10px; }
+        
+        /* Block Specific CSS */
+        .token-chip { display: inline-block; background: #eee; padding: 2px 6px; margin: 2px; border-radius: 4px; font-size: 12px; }
     </style>
 </head>
 <body>
-    <div id="root"></div>
 
-    <script type="text/babel">
-        // --- DATA CONSTANTS (V59 BRAIN) ---
-        const CITY_DB = [
-            {name:"London",tz:"Europe/London"},{name:"New York",tz:"America/New_York"},{name:"Tokyo",tz:"Asia/Tokyo"},
-            {name:"Sydney",tz:"Australia/Sydney"},{name:"Dubai",tz:"Asia/Dubai"},{name:"Los Angeles",tz:"America/Los_Angeles"},
-            {name:"Paris",tz:"Europe/Paris"},{name:"Berlin",tz:"Europe/Berlin"},{name:"Singapore",tz:"Asia/Singapore"},
-            {name:"Hong Kong",tz:"Asia/Hong_Kong"},{name:"Toronto",tz:"America/Toronto"},{name:"Mumbai",tz:"Asia/Kolkata"},
-            {name:"Chicago",tz:"America/Chicago"},{name:"Shanghai",tz:"Asia/Shanghai"},{name:"Moscow",tz:"Europe/Moscow"}
-        ];
-        const DATE_TOKENS = [
-            {v:'day_name_full',t:'Day Name'},{v:'day_name_short',t:'Day (Mon)'},{v:'date_num',t:'Date (28)'},
-            {v:'month_full',t:'Month'},{v:'month_short',t:'Month (Jan)'},{v:'year',t:'Year'},
-            {v:'separator',t:'|'},{v:'space',t:'Space'}
-        ];
+<div id="header">
+    <div class="header-handle" onclick="document.getElementById('header').classList.toggle('collapsed')">General Settings / URL Generator (Click to Toggle)</div>
+    <div class="config-bar">
+        <div style="flex: 1; min-width: 300px;">
+            <label>Live Widget URL:</label><br>
+            <textarea id="output-url" class="url-box" readonly></textarea>
+            <button onclick="copyUrl()">Copy URL</button>
+            <button onclick="openUrl()">Open Viewer</button>
+        </div>
+        <div>
+            <label>Font:</label>
+            <select id="global-font" onchange="updateGlobal()">
+                <option value="sans-serif">Sans</option>
+                <option value="serif">Serif</option>
+                <option value="monospace">Mono</option>
+            </select>
+        </div>
+    </div>
+</div>
 
-        // --- COMPONENTS ---
+<div id="canvas"></div>
 
-        // 1. RENDERER (The View Logic)
-        const BlockContent = ({ block, settings }) => {
-            const style = {
-                fontFamily: settings.font === 'serif' ? 'Georgia' : settings.font === 'mono' ? 'monospace' : 'sans-serif',
-                fontSize: settings.textSize === 'small' ? '14px' : settings.textSize === 'large' ? '18px' : '16px'
-            };
+<div id="footer-dock">
+    <button onclick="addBlock('header')">+ Header</button>
+    <button onclick="addBlock('date')">+ Date</button>
+    <button onclick="addBlock('clock')">+ Clock</button>
+    <button onclick="addBlock('life')">+ Life Grid</button>
+    <button onclick="addBlock('moon')">+ Moon</button>
+    <button onclick="addBlock('spacer')">+ Spacer</button>
+</div>
 
-            const getTime = (tz) => {
-                try {
-                    return new Date().toLocaleTimeString('en-US', { timeZone: tz, hour12: settings.use24h === '12', hour: 'numeric', minute: '2-digit' });
-                } catch { return "00:00"; }
-            };
+<div id="modal-overlay">
+    <div id="modal-content">
+        <div id="modal-mount"></div>
+        <hr>
+        <button onclick="closeModal()">Close & Save</button>
+    </div>
+</div>
 
-            if (block.type === 'header') return <div style={style} className="txt-lg">{block.text}</div>;
-            
-            if (block.type === 'world_clock') {
-                return <div style={style}>
-                    {block.locations.map((loc, i) => (
-                        <div key={i} className="clock-row">
-                            <div>
-                                <div style={{fontWeight:600}}>{loc.label}</div>
-                                {block.showDate && <div className="txt-sub" style={{fontSize:'0.7em'}}>{new Date().toLocaleDateString()}</div>}
-                            </div>
-                            <div className="txt-lg" style={{fontFamily:'monospace'}}>{getTime(loc.timezone)}</div>
-                        </div>
-                    ))}
-                </div>;
-            }
+<div id="warehouse">
+    <div id="form-header">
+        <label>Text Content:</label>
+        <input type="text" data-prop="content" class="form-update">
+    </div>
+    <div id="form-spacer">
+        <label>Height (px):</label>
+        <input type="number" data-prop="h" step="10" class="form-update">
+    </div>
+    <div id="form-life">
+        <label>Birth Date:</label>
+        <input type="date" data-prop="dob" class="form-update">
+        <label>Expectancy:</label>
+        <input type="number" data-prop="years" class="form-update">
+    </div>
+    </div>
 
-            if (block.type === 'visual_grid') {
-                const total = block.gridType === 'month' ? 30 : block.gridType === 'life' ? (block.expectancy||80) : 52;
-                const filled = 15; // Mock logic, V59 math can go here
-                return <div style={style}>
-                    <div className="txt-sub" style={{textTransform:'uppercase',marginBottom:5}}>{block.gridType} Grid</div>
-                    <div className="grid-wrap">
-                        {Array.from({length: Math.min(total, 100)}).map((_, i) => (
-                            <div key={i} className="grid-cell" style={{
-                                width: block.blockSize === '24px' ? 24 : 10,
-                                height: block.blockSize === '24px' ? 24 : 10,
-                                background: block.accentColor,
-                                opacity: i < filled ? 0.9 : 0.15
-                            }}></div>
-                        ))}
-                    </div>
-                </div>;
-            }
+<script>
+/** * SHARED RENDERING ENGINE 
+ * (This logic is identical in index.html)
+ */
+const Engine = {
+    render(block) {
+        let html = `<div style="padding:15px; background:${block.colors?.bg || '#fff'}; color:${block.colors?.text || '#000'}; height:100%; border-radius:inherit; box-sizing:border-box;">`;
+        
+        switch(block.type) {
+            case 'header': 
+                html += `<h2 style="margin:0">${block.content || 'Header'}</h2>`; 
+                break;
+            case 'life':
+                const dob = new Date(block.dob || '1990-01-01');
+                const diff = new Date() - dob;
+                const weeksLived = Math.floor(diff / (1000 * 60 * 60 * 24 * 7));
+                const totalWeeks = (block.years || 80) * 52;
+                html += `<div>Life Progress</div><div style="display:grid; grid-template-columns:repeat(52, 1fr); gap:1px; margin-top:5px;">`;
+                for(let i=0; i<totalWeeks; i++) {
+                    const color = i < weeksLived ? (block.colors?.accent || '#37352f') : '#e9e9e8';
+                    html += `<div style="width:100%; aspect-ratio:1; background:${color}"></div>`;
+                }
+                html += `</div>`;
+                break;
+            case 'moon':
+                html += `<div style="font-size:2em; text-align:center;">${this.getMoonPhase()}</div>`;
+                break;
+            case 'spacer':
+                html += `<div style="height:${block.h}px"></div>`;
+                break;
+            default: html += `Block: ${block.type}`;
+        }
+        html += `</div>`;
+        return html;
+    },
+    getMoonPhase() {
+        const phases = ['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
+        const d = new Date();
+        const day = d.getDate();
+        return phases[day % 8]; // Simplified for demo
+    }
+};
 
-            if (block.type === 'progress_group') {
-                return <div style={style}>
-                    {block.items.map((it, i) => (
-                        it.visible && <div key={i} style={{marginBottom:6}}>
-                            <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.8em'}}>
-                                <span>{it.label}</span><span>50%</span>
-                            </div>
-                            <div style={{height:6,background:'rgba(0,0,0,0.1)',borderRadius:3,overflow:'hidden'}}>
-                                <div style={{width:'50%',height:'100%',background:block.accentColor}}></div>
-                            </div>
-                        </div>
-                    ))}
-                </div>;
-            }
+/** ADMIN STATE MANAGEMENT **/
+let state = {
+    settings: { font: 'sans-serif' },
+    blocks: []
+};
 
-            // Default
-            return <div style={style}>
-                <div className="txt-sub" style={{textTransform:'uppercase'}}>{block.type.replace('_',' ')}</div>
-                <div className="txt-lg">{block.label || ''}</div>
-            </div>;
-        };
+let activeBlockId = null;
 
-        // 2. INSPECTOR (The Settings Logic)
-        const Inspector = ({ block, updateBlock }) => {
-            const [search, setSearch] = React.useState("");
+function addBlock(type) {
+    const id = 'b' + Date.now();
+    state.blocks.push({ id, type, content: 'New Block', w: 6, h: 100, colors: {bg: '#ffffff', text: '#37352f', accent: '#2eaadc'} });
+    updateUI();
+}
 
-            const addCity = (c) => {
-                const newLocs = [...(block.locations || []), { label: c.name, timezone: c.tz }];
-                updateBlock('locations', newLocs);
-                setSearch("");
-            };
+function updateUI() {
+    const canvas = document.getElementById('canvas');
+    canvas.innerHTML = '';
+    
+    state.blocks.forEach(block => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'block-wrapper';
+        wrapper.style.gridColumn = `span ${block.w}`;
+        wrapper.innerHTML = `
+            <div class="controls">
+                <button class="btn-small" onclick="editBlock('${block.id}')">Edit</button>
+                <button class="btn-small" onclick="removeBlock('${block.id}')">X</button>
+            </div>
+            ${Engine.render(block)}
+            <div class="handle-r" onmousedown="initResize(event, '${block.id}', 'w')"></div>
+            <div class="handle-b" onmousedown="initResize(event, '${block.id}', 'h')"></div>
+        `;
+        canvas.appendChild(wrapper);
+    });
+    
+    // Update Hash
+    const hash = btoa(JSON.stringify(state));
+    window.location.hash = hash;
+    document.getElementById('output-url').value = window.location.origin + '/index.html#' + hash;
+}
 
-            const filteredCities = CITY_DB.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+function editBlock(id) {
+    activeBlockId = id;
+    const block = state.blocks.find(b => b.id === id);
+    const mount = document.getElementById('modal-mount');
+    const form = document.getElementById(`form-${block.type}`);
+    
+    if (form) {
+        // Hydrate form
+        form.querySelectorAll('.form-update').forEach(input => {
+            input.value = block[input.dataset.prop] || '';
+        });
+        mount.appendChild(form);
+        document.getElementById('modal-overlay').style.display = 'flex';
+    }
+}
 
-            return (
-                <div className="inspector">
-                    <div className="insp-scroll">
-                        <div className="insp-head">Appearance</div>
-                        <div className="f-group">
-                            <label className="f-lbl">Size</label>
-                            <div className="row">
-                                <div className="col"><input className="f-in" type="number" min="1" max="12" value={block.cols} onChange={e => updateBlock('cols', parseInt(e.target.value))} /></div>
-                                <div className="col"><input className="f-in" type="number" step="10" value={block.height} onChange={e => updateBlock('height', parseInt(e.target.value))} /></div>
-                            </div>
-                        </div>
-                        <div className="f-group">
-                            <label className="f-lbl">Colors</label>
-                            <div className="row">
-                                <div className="col"><input type="color" style={{width:'100%',height:30}} value={block.bgColor} onChange={e => updateBlock('bgColor', e.target.value)} /></div>
-                                <div className="col"><input type="color" style={{width:'100%',height:30}} value={block.textColor} onChange={e => updateBlock('textColor', e.target.value)} /></div>
-                                <div className="col"><input type="color" style={{width:'100%',height:30}} value={block.accentColor} onChange={e => updateBlock('accentColor', e.target.value)} /></div>
-                            </div>
-                        </div>
+function closeModal() {
+    const block = state.blocks.find(b => b.id === activeBlockId);
+    const mount = document.getElementById('modal-mount');
+    const form = mount.firstElementChild;
+    
+    if (form) {
+        form.querySelectorAll('.form-update').forEach(input => {
+            block[input.dataset.prop] = input.value;
+        });
+        document.getElementById('warehouse').appendChild(form);
+    }
+    
+    document.getElementById('modal-overlay').style.display = 'none';
+    updateUI();
+}
 
-                        {/* CONDITIONAL SETTINGS */}
-                        <div className="insp-head" style={{marginTop:20}}>Block Settings</div>
+function removeBlock(id) {
+    state.blocks = state.blocks.filter(b => b.id !== id);
+    updateUI();
+}
 
-                        {block.type === 'header' && (
-                            <div className="f-group"><label className="f-lbl">Text</label><input className="f-in" value={block.text} onChange={e => updateBlock('text', e.target.value)} /></div>
-                        )}
+// Resizing Logic
+function initResize(e, id, dir) {
+    e.preventDefault();
+    const block = state.blocks.find(b => b.id === id);
+    const startX = e.clientX;
+    const startW = block.w;
+    
+    const onMove = (moveEvent) => {
+        if (dir === 'w') {
+            const diff = moveEvent.clientX - startX;
+            const gridWidth = document.getElementById('canvas').offsetWidth / 12;
+            const newW = Math.max(1, Math.min(12, Math.round(startW + diff / gridWidth)));
+            block.w = newW;
+        }
+        updateUI();
+    };
+    
+    const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+    };
+    
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+}
 
-                        {block.type === 'world_clock' && (
-                            <div>
-                                <div className="f-group">
-                                    <label className="f-lbl">Cities</label>
-                                    {block.locations.map((loc, i) => (
-                                        <div key={i} className="list-item">
-                                            <input className="f-in" style={{padding:4}} value={loc.label} onChange={e => {
-                                                const nu = [...block.locations]; nu[i].label = e.target.value; updateBlock('locations', nu);
-                                            }} />
-                                            <button className="btn btn-red" onClick={() => {
-                                                const nu = [...block.locations]; nu.splice(i,1); updateBlock('locations', nu);
-                                            }}>×</button>
-                                        </div>
-                                    ))}
-                                    <input className="f-in" placeholder="Search City..." value={search} onChange={e => setSearch(e.target.value)} style={{marginTop:5}} />
-                                    {search.length > 1 && (
-                                        <div className="search-res">
-                                            {filteredCities.map((c, i) => (
-                                                <div key={i} className="search-opt" onClick={() => addCity(c)}>{c.name}</div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="f-group">
-                                    <label className="f-lbl">Toggles</label>
-                                    <div style={{display:'flex',gap:10}}>
-                                        <label><input type="checkbox" checked={block.showSeconds} onChange={e => updateBlock('showSeconds', e.target.checked)} /> Secs</label>
-                                        <label><input type="checkbox" checked={block.showDate} onChange={e => updateBlock('showDate', e.target.checked)} /> Date</label>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+function copyUrl() {
+    const el = document.getElementById('output-url');
+    el.select();
+    document.execCommand('copy');
+    alert('URL Copied!');
+}
 
-                        {block.type === 'visual_grid' && (
-                            <div>
-                                <div className="f-group">
-                                    <label className="f-lbl">Type</label>
-                                    <select className="f-sel" value={block.gridType} onChange={e => updateBlock('gridType', e.target.value)}>
-                                        <option value="year">Year</option><option value="month">Month</option><option value="life">Life</option>
-                                    </select>
-                                </div>
-                                {block.gridType === 'life' && (
-                                    <div className="f-group">
-                                        <label className="f-lbl">DOB</label><input className="f-in" type="date" value={block.dob || ''} onChange={e => updateBlock('dob', e.target.value)} />
-                                        <label className="f-lbl" style={{marginTop:5}}>Expectancy</label><input className="f-in" type="number" value={block.expectancy || 80} onChange={e => updateBlock('expectancy', e.target.value)} />
-                                    </div>
-                                )}
-                            </div>
-                        )}
+function openUrl() {
+    window.open(document.getElementById('output-url').value, '_blank');
+}
 
-                        {block.type === 'date_display' && (
-                            <div className="f-group">
-                                <label className="f-lbl">Line 1 Items</label>
-                                {block.line1.map((tok, i) => (
-                                    <div key={i} className="list-item">
-                                        <select style={{width:'100%'}} value={tok} onChange={e => {
-                                            const nu = [...block.line1]; nu[i] = e.target.value; updateBlock('line1', nu);
-                                        }}>
-                                            {DATE_TOKENS.map(t => <option key={t.v} value={t.v}>{t.t}</option>)}
-                                        </select>
-                                        <button className="btn btn-red" onClick={() => {
-                                            const nu = [...block.line1]; nu.splice(i,1); updateBlock('line1', nu);
-                                        }}>×</button>
-                                    </div>
-                                ))}
-                                <button className="btn btn-blue" style={{width:'100%',marginTop:5}} onClick={() => updateBlock('line1', [...block.line1, 'space'])}>+ Add Token</button>
-                            </div>
-                        )}
-
-                    </div>
-                </div>
-            );
-        };
-
-        // 3. MAIN APP
-        const App = () => {
-            const [blocks, setBlocks] = React.useState([
-                { id: 1, type: 'header', text: 'Welcome', cols: 12, height: 80, bgColor: '#ffffff', textColor: '#333333', accentColor: '#3498db' }
-            ]);
-            const [selIdx, setSelIdx] = React.useState(-1);
-            const [showGlobal, setShowGlobal] = React.useState(false);
-            const [settings, setSettings] = React.useState({ theme: 'standard', font: 'sans', textSize: 'medium', use24h: '12' });
-
-            const addBlock = (type) => {
-                const b = { 
-                    id: Date.now(), type, cols: 6, height: 100, 
-                    bgColor: '#ffffff', textColor: '#333333', accentColor: '#3498db', label: 'Label',
-                    // Defaults
-                    locations: [{label:'London', timezone:'Europe/London'}],
-                    line1: ['day_name_full'], line2: ['month_full','space','date_num'],
-                    gridType: 'year', items: [{type:'year',label:'Year',visible:true}], steps: []
-                };
-                setBlocks([...blocks, b]);
-                setSelIdx(blocks.length); // Select new
-            };
-
-            const updateBlock = (key, val) => {
-                const nu = [...blocks];
-                nu[selIdx] = { ...nu[selIdx], [key]: val };
-                setBlocks(nu);
-            };
-
-            const removeBlock = (i) => {
-                const nu = [...blocks]; nu.splice(i, 1);
-                setBlocks(nu); setSelIdx(-1);
-            };
-
-            const startResize = (e, idx) => {
-                e.preventDefault(); e.stopPropagation();
-                const startY = e.clientY; const startH = blocks[idx].height;
-                const onMove = (mv) => {
-                    const diff = mv.clientY - startY;
-                    const nu = [...blocks];
-                    nu[idx].height = Math.max(30, Math.ceil((startH + diff)/10)*10);
-                    setBlocks(nu);
-                };
-                const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-                window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
-            };
-
-            const generateLink = () => {
-                const json = JSON.stringify({ s: settings, b: blocks });
-                const hash = btoa(unescape(encodeURIComponent(json)));
-                const url = window.location.href.replace('admin.html', 'index.html').split('#')[0] + '#' + hash;
-                prompt("Shareable Link:", url);
-            };
-
-            return (
-                <div style={{height:'100%', display:'flex', flexDirection:'column'}}>
-                    {/* HEADER */}
-                    <div className="header">
-                        <div className="h-title" onClick={() => setShowGlobal(!showGlobal)}>
-                            <span>{showGlobal ? '▼' : '▶'}</span> Widget Builder V77
-                        </div>
-                        <div style={{display:'flex', gap:10}}>
-                            <button className="btn btn-blue" onClick={generateLink}>Link</button>
-                        </div>
-                    </div>
-                    {showGlobal && (
-                        <div className="global-bar">
-                            <select value={settings.theme} onChange={e => setSettings({...settings, theme:e.target.value})}><option value="standard">Standard</option><option value="card">Card</option></select>
-                            <select value={settings.font} onChange={e => setSettings({...settings, font:e.target.value})}><option value="sans">Sans</option><option value="serif">Serif</option></select>
-                            <select value={settings.use24h} onChange={e => setSettings({...settings, use24h:e.target.value})}><option value="12">12 Hour</option><option value="24">24 Hour</option></select>
-                        </div>
-                    )}
-
-                    {/* MAIN */}
-                    <div className="main-body">
-                        <div className="canvas-area" onClick={() => setSelIdx(-1)}>
-                            <div className="grid-layout" style={{gap: settings.theme === 'card' ? 15 : 10}}>
-                                {blocks.map((b, i) => (
-                                    <div key={b.id} className={`block ${selIdx === i ? 'selected' : ''}`}
-                                         style={{gridColumn: `span ${b.cols}`, gridRowEnd: `span ${Math.ceil(b.height/10)}`, height: b.height}}
-                                         onClick={(e) => { e.stopPropagation(); setSelIdx(i); }}>
-                                        
-                                        <div className="b-actions">
-                                            <button className="btn btn-red" onClick={(e) => { e.stopPropagation(); removeBlock(i); }}>×</button>
-                                        </div>
-                                        
-                                        <div className="block-inner" style={{background: b.bgColor, color: b.textColor}}>
-                                            <BlockContent block={b} settings={settings} />
-                                        </div>
-                                        
-                                        <div className="handle handle-h" onMouseDown={(e) => startResize(e, i)}></div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* INSPECTOR */}
-                        {selIdx > -1 && blocks[selIdx] && (
-                            <Inspector block={blocks[selIdx]} updateBlock={updateBlock} />
-                        )}
-                    </div>
-
-                    {/* FOOTER */}
-                    <div className="footer">
-                        <div className="f-lbl" style={{marginBottom:10, color:'#999'}}>Add Block</div>
-                        <div className="footer-scroll">
-                            <button className="pill c-1" onClick={() => addBlock('header')}>Text</button>
-                            <button className="pill c-2" onClick={() => addBlock('world_clock')}>Time</button>
-                            <button className="pill c-3" onClick={() => addBlock('date_display')}>Date</button>
-                            <button className="pill c-2" onClick={() => addBlock('visual_grid')}>Grid</button>
-                            <button className="pill c-5" onClick={() => addBlock('progress_group')}>Progress</button>
-                            <button className="pill c-6" onClick={() => addBlock('countdown')}>Countdown</button>
-                            <button className="pill c-4" onClick={() => addBlock('moon_phase')}>Moon</button>
-                            <button className="pill c-1" onClick={() => addBlock('spacer')}>Spacer</button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+// Initial Load
+if (window.location.hash) {
+    try {
+        state = JSON.parse(atob(window.location.hash.substring(1)));
+        updateUI();
+    } catch(e) { console.error("Hash load failed", e); }
+}
+</script>
 </body>
 </html>
