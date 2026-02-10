@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Widget Admin V71</title>
+    <title>Widget Admin V72</title>
     <style>
         /* CORE */
         * { box-sizing: border-box; }
-        :root { --bg-canvas: #f4f5f7; --font: sans-serif; --pad: 1rem; --c-acc: #34495e; }
-        html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg-canvas); color: #37352f; overflow: hidden; }
+        :root { --bg-canvas: #f4f5f7; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; --pad: 1rem; --c-acc: #34495e; }
+        html, body { margin: 0; padding: 0; height: 100%; font-family: var(--font); background: var(--bg-canvas); color: #37352f; overflow: hidden; }
         .app-container { display: flex; flex-direction: column; height: 100vh; }
 
         /* HEADER */
@@ -27,16 +27,17 @@
         .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; padding: 20px; }
         .panel label { font-size: 0.7rem; font-weight: 700; color: #7f8c8d; text-transform: uppercase; display: block; margin-bottom: 5px; }
 
-        /* CANVAS (12-Column Grid for Stacking) */
+        /* CANVAS (12-Column Grid) */
         .canvas-area { flex-grow: 1; overflow-y: auto; padding: 20px; padding-bottom: 140px; position: relative; background: #f4f5f7; }
         .canvas-watermark { position: absolute; top: 20px; left: 20px; font-size: 0.8rem; font-weight: 700; color: #ccc; text-transform: uppercase; pointer-events: none; }
         
         #canvas {
             display: grid;
-            grid-template-columns: repeat(12, 1fr); /* 12 Cols for flexibility */
-            grid-auto-rows: 20px; /* Fine-grain height control */
-            grid-gap: 10px;
-            grid-auto-flow: dense; /* The secret to stacking */
+            grid-template-columns: repeat(12, 1fr);
+            grid-auto-rows: 50px; /* Base height unit */
+            grid-gap: 15px;
+            grid-auto-flow: dense; 
+            padding-bottom: 100px;
         }
 
         /* BLOCK ITEM */
@@ -48,7 +49,7 @@
         .widget-block:hover { border-color: #3498db; box-shadow: 0 8px 20px rgba(0,0,0,0.1); z-index: 10; }
         .widget-block.dragging { opacity: 0.5; border-style: solid; }
 
-        /* INNER CONTENT (Smart Render) */
+        /* INNER CONTENT */
         .block-inner { width: 100%; height: 100%; padding: var(--pad); display: flex; flex-direction: column; justify-content: center; pointer-events: none; }
 
         /* CONTROLS */
@@ -59,15 +60,22 @@
         .ctrl-del { color: #c0392b; background: #fadbd8; border-color: #e6b0aa; }
 
         /* HANDLES */
-        .handle-w { position: absolute; top: 0; bottom: 10px; right: 0; width: 15px; cursor: col-resize; z-index: 15; pointer-events: auto; }
+        .handle-w { position: absolute; top: 0; bottom: 15px; right: 0; width: 15px; cursor: col-resize; z-index: 15; pointer-events: auto; }
         .handle-h { position: absolute; bottom: 0; left: 0; right: 0; height: 15px; cursor: row-resize; z-index: 15; pointer-events: auto; }
         .handle-w:hover, .handle-h:hover { background: rgba(52, 152, 219, 0.2); }
 
         /* FOOTER */
         .app-footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #ddd; padding: 15px 20px; z-index: 500; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); }
-        .footer-buttons { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .footer-scroll { overflow-x: auto; white-space: nowrap; padding-bottom: 5px; }
+        .footer-buttons { display: inline-flex; gap: 8px; }
+        /* V59 Colors */
         .add-btn { padding: 8px 12px; border: none; border-radius: 4px; font-weight: 600; font-size: 0.75rem; color: white; cursor: pointer; transition: transform 0.1s; }
         .add-btn:hover { transform: translateY(-2px); opacity: 0.9; }
+        .c-text { background: #7f8c8d; } .c-date { background: #16a085; } .c-time { background: #27ae60; }
+        .c-grid { background: #6aa84f; } .c-auto { background: #c0392b; } .c-custom { background: #d35400; }
+        .c-cycle { background: #e67e22; } .c-count { background: #f39c12; } .c-timer { background: #8e44ad; }
+        .c-seq { background: #9b59b6; } .c-cnt { background: #c90076; } .c-moon { background: #34495e; }
+        .c-util { background: #95a5a6; }
 
         /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
@@ -76,7 +84,7 @@
         .modal-body { padding: 20px; overflow-y: auto; flex-grow: 1; }
         .modal-footer { padding: 15px 20px; border-top: 1px solid #eee; text-align: right; background: #fff; }
 
-        /* FORMS & LISTS */
+        /* FORM ELEMENTS */
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 6px; font-size: 0.75rem; font-weight: 700; color: #666; text-transform: uppercase; }
         input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
@@ -90,20 +98,17 @@
         /* CITY SEARCH */
         .city-search-box { position: relative; }
         .city-results { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; max-height: 150px; overflow-y: auto; z-index: 2000; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .city-opt { padding: 8px; cursor: pointer; border-bottom: 1px solid #f0f0f0; } .city-opt:hover { background: #f5f5f5; }
+        .city-opt { padding: 8px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #f0f0f0; } .city-opt:hover { background: #f5f5f5; }
 
-        /* COLORS */
-        .c-text { background: #7f8c8d; } .c-date { background: #16a085; } .c-time { background: #27ae60; }
-        .c-grid { background: #6aa84f; } .c-auto { background: #c0392b; } .c-custom { background: #d35400; }
-        .c-cycle { background: #e67e22; } .c-count { background: #f39c12; } .c-timer { background: #8e44ad; }
-        .c-seq { background: #9b59b6; } .c-cnt { background: #c90076; } .c-moon { background: #34495e; }
-        .c-util { background: #95a5a6; }
-        
         .hidden { display: none !important; }
         
-        /* PREVIEW STYLES (Shared) */
+        /* LINK BOX */
+        .link-textarea { width: 100%; height: 60px; font-family: monospace; font-size: 0.75rem; border: 1px solid #ddd; padding: 8px; background: #f9f9f9; resize: none; word-break: break-all; white-space: normal; }
+
+        /* SHARED PREVIEW STYLES */
         .txt-lg { font-size: 1.5em; font-weight: 700; line-height: 1.1; }
         .txt-sub { font-size: 0.85em; opacity: 0.8; }
+        .txt-lbl { font-size: 0.7em; text-transform: uppercase; font-weight: 700; opacity: 0.5; margin-bottom: 3px; }
         .clock-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
     </style>
 </head>
@@ -120,9 +125,14 @@
             </div>
         </div>
         <div id="link-panel" class="panel">
-            <div style="padding:15px"><textarea class="link-textarea" id="result-url" style="width:100%;height:60px;font-family:monospace;border:1px solid #ddd;padding:8px" readonly onclick="this.select()"></textarea></div>
+            <div class="panel-content">
+                <textarea class="link-textarea" id="result-url" readonly onclick="this.select()"></textarea>
+            </div>
         </div>
-        <div class="settings-toggle" onclick="togglePanel('settings-panel')"><span>▼</span> General Settings</div>
+        
+        <div class="settings-toggle" onclick="togglePanel('settings-panel')">
+            <span class="header-arrow" id="arr-set">▼</span> General Settings
+        </div>
         <div id="settings-panel" class="panel">
             <div class="panel-grid">
                 <div><label>Time Format</label><select id="s-time" onchange="updateGlobal()"><option value="12">12 Hour</option><option value="24">24 Hour</option></select></div>
@@ -137,25 +147,27 @@
 
     <div class="canvas-area">
         <div class="canvas-watermark">Block Space</div>
-        <div id="canvas"></div>
+        <div id="canvas" onmousemove="handleDrag(event)" onmouseup="stopDrag()"></div>
     </div>
 
     <div class="app-footer">
-        <div class="footer-buttons">
-            <button class="add-btn c-text" onclick="addBlock('header')">Text</button>
-            <button class="add-btn c-date" onclick="addBlock('date_display')">Date</button>
-            <button class="add-btn c-time" onclick="addBlock('world_clock')">Time</button>
-            <button class="add-btn c-grid" onclick="addBlock('visual_grid')">Grid</button>
-            <button class="add-btn c-auto" onclick="addBlock('progress_group')">Auto Progress</button>
-            <button class="add-btn c-custom" onclick="addBlock('progress_custom')">Custom Progress</button>
-            <button class="add-btn c-cycle" onclick="addBlock('progress_cycle')">Cycle</button>
-            <button class="add-btn c-count" onclick="addBlock('countdown')">Countdown</button>
-            <button class="add-btn c-timer" onclick="addBlock('timer')">Timer</button>
-            <button class="add-btn c-seq" onclick="addBlock('sequence')">Sequence</button>
-            <button class="add-btn c-cnt" onclick="addBlock('counter')">Counter</button>
-            <button class="add-btn c-moon" onclick="addBlock('moon_phase')">Moon Phase</button>
-            <button class="add-btn c-util" onclick="addBlock('spacer')">Spacer</button>
-            <button class="add-btn c-util" onclick="addBlock('empty')">Empty Block</button>
+        <div class="footer-scroll">
+            <div class="footer-buttons">
+                <button class="add-btn c-text" onclick="addBlock('header')">Text</button>
+                <button class="add-btn c-date" onclick="addBlock('date_display')">Date</button>
+                <button class="add-btn c-time" onclick="addBlock('world_clock')">Time</button>
+                <button class="add-btn c-grid" onclick="addBlock('visual_grid')">Grid</button>
+                <button class="add-btn c-auto" onclick="addBlock('progress_group')">Auto Progress</button>
+                <button class="add-btn c-custom" onclick="addBlock('progress_custom')">Custom Progress</button>
+                <button class="add-btn c-cycle" onclick="addBlock('progress_cycle')">Cycle</button>
+                <button class="add-btn c-count" onclick="addBlock('countdown')">Countdown</button>
+                <button class="add-btn c-timer" onclick="addBlock('timer')">Timer</button>
+                <button class="add-btn c-seq" onclick="addBlock('sequence')">Sequence</button>
+                <button class="add-btn c-cnt" onclick="addBlock('counter')">Counter</button>
+                <button class="add-btn c-moon" onclick="addBlock('moon_phase')">Moon Phase</button>
+                <button class="add-btn c-util" onclick="addBlock('spacer')">Spacer</button>
+                <button class="add-btn c-util" onclick="addBlock('empty')">Empty Block</button>
+            </div>
         </div>
     </div>
 </div>
@@ -190,10 +202,52 @@
             <div class="col"><label>Type</label><select data-key="gridType" onchange="toggleGridFields()"><option value="year">Year</option><option value="month">Month</option><option value="week">Week</option><option value="day">Day</option><option value="life">Life</option></select></div>
             <div class="col"><label>Shape</label><select data-key="shape"><option value="square">Square</option><option value="wide">Wide</option><option value="ultrawide">Ultrawide</option></select></div>
         </div></div>
+        <div class="form-group"><div class="row">
+            <div class="col"><label>Size</label><select data-key="blockSize"><option value="12px">Small</option><option value="16px">Medium</option><option value="24px">Large</option></select></div>
+        </div></div>
         <div class="form-group" id="grid-life-fields" style="display:none"><div class="row">
             <div class="col"><label>DOB</label><input type="date" data-key="dob"></div>
             <div class="col"><label>Expectancy</label><input type="number" data-key="expectancy"></div>
         </div></div>
+    </div>
+
+    <div id="set-progress_group">
+        <div class="form-group"><label>Items</label><div class="sub-list" id="list-prog"></div></div>
+    </div>
+    
+    <div id="set-sequence">
+        <div class="form-group"><label>Steps</label><div class="sub-list" id="list-steps"></div><button class="btn-add-sub" onclick="addStep()">+ Step</button></div>
+    </div>
+    
+    <div id="set-timer">
+        <div class="form-group"><div class="row"><div class="col"><label>Hours</label><input type="number" data-key="hours"></div><div class="col"><label>Minutes</label><input type="number" data-key="minutes"></div></div></div>
+    </div>
+    
+    <div id="set-countdown">
+        <div class="form-group"><label>Target Date</label><input type="date" data-key="date"></div>
+        <div class="form-group"><label><input type="checkbox" data-key="includeTime"> Include Time</label></div>
+        <div class="form-group"><label>Time</label><input type="time" data-key="time"></div>
+    </div>
+    
+    <div id="set-progress_custom">
+        <div class="form-group"><div class="row"><div class="col"><label>Start</label><input type="date" data-key="start"></div><div class="col"><label>End</label><input type="date" data-key="end"></div></div></div>
+    </div>
+    
+    <div id="set-progress_cycle">
+        <div class="form-group"><div class="row"><div class="col"><label>Start Date</label><input type="date" data-key="anchor"></div><div class="col"><label>Duration (Days)</label><input type="number" data-key="days"></div></div></div>
+        <div class="form-group"><label>Reset</label><select data-key="resetMode"><option value="manual">Manual</option><option value="auto">Auto Loop</option></select></div>
+    </div>
+    
+    <div id="set-moon_phase">
+        <div class="form-group"><div style="display:flex;gap:10px">
+            <label><input type="checkbox" data-key="showIcon"> Icon</label>
+            <label><input type="checkbox" data-key="showPhase"> Name</label>
+            <label><input type="checkbox" data-key="showAge"> Age</label>
+        </div></div>
+    </div>
+    
+    <div id="set-spacer">
+        <div class="form-group"><div class="row"><div class="col"><label>Style</label><select data-key="style"><option value="solid">Solid</option><option value="dotted">Dotted</option><option value="dashed">Dashed</option></select></div><div class="col"><label>Thickness</label><select data-key="thickness"><option value="1px">Thin</option><option value="2px">Medium</option><option value="4px">Thick</option></select></div></div></div>
     </div>
 </div>
 
@@ -203,16 +257,15 @@
         <div class="modal-body">
             <div class="form-group"><div class="row">
                 <div class="col"><label>Width (1-12)</label><input type="number" id="in-cols" min="1" max="12"></div>
-                <div class="col"><label>Height (px)</label><input type="number" id="in-rows" step="20"></div>
+                <div class="col"><label>Height (px)</label><input type="number" id="in-rows" step="10"></div>
             </div></div>
             <div class="form-group" id="wrap-label"><label>Label</label><input type="text" id="in-label"></div>
             <div class="form-group" id="wrap-text"><label>Text</label><input type="text" id="in-text"></div>
             
             <div id="modal-slot"></div>
-            
             <div id="color-slot"></div>
         </div>
-        <div class="modal-footer"><button class="btn-blue" style="padding:8px 16px; border:none; border-radius:4px; color:white; cursor:pointer" onclick="saveModal()">Done</button></div>
+        <div class="modal-footer"><button class="add-btn c-time" onclick="saveModal()">Done</button></div>
     </div>
 </div>
 
@@ -221,16 +274,14 @@
     let settings = { use24h: '12', weekStart: 'monday', theme: 'standard', font: 'sans', textSize: 'medium', padding: 'comfortable' };
     let blocks = [];
     let editIdx = -1;
-    let dragIdx = -1;
+    let resizingIdx = -1;
+    let resizeMode = ''; let startX, startY, startW, startH;
 
-    // --- V59 DATA CORE ---
-    const cityDB = [
-{name:"Abidjan",tz:"Africa/Abidjan"},{name:"Abu Dhabi",tz:"Asia/Dubai"},{name:"Abuja",tz:"Africa/Lagos"},{name:"Accra",tz:"Africa/Accra"},{name:"Adak",tz:"America/Adak"},{name:"Adamstown",tz:"Pacific/Pitcairn"},{name:"Addis Ababa",tz:"Africa/Addis_Ababa"},{name:"Adelaide",tz:"Australia/Adelaide"},{name:"Alert",tz:"America/Iqaluit"},{name:"Algiers",tz:"Africa/Algiers"},{name:"Alice Springs",tz:"Australia/Darwin"},{name:"Almaty",tz:"Asia/Almaty"},{name:"Alofi",tz:"Pacific/Niue"},{name:"Amman",tz:"Asia/Amman"},{name:"Amsterdam",tz:"Europe/Amsterdam"},{name:"Amsterdam Island",tz:"Indian/Kerguelen"},{name:"Anadyr",tz:"Asia/Anadyr"},{name:"Anchorage",tz:"America/Anchorage"},{name:"Ankara",tz:"Europe/Istanbul"},{name:"Antananarivo",tz:"Indian/Antananarivo"},{name:"Apia",tz:"Pacific/Apia"},{name:"Ashgabat",tz:"Asia/Ashgabat"},{name:"Asmara",tz:"Africa/Asmara"},{name:"Astana",tz:"Asia/Almaty"},{name:"Asuncion",tz:"America/Asuncion"},{name:"Athens",tz:"Europe/Athens"},{name:"Atlanta",tz:"America/New_York"},{name:"Auckland",tz:"Pacific/Auckland"},{name:"Austin",tz:"America/Chicago"},{name:"Baghdad",tz:"Asia/Baghdad"},{name:"Baker Island",tz:"Etc/GMT+12"},{name:"Baker Lake",tz:"America/Rankin_Inlet"},{name:"Baku",tz:"Asia/Baku"},{name:"Bamako",tz:"Africa/Bamako"},{name:"Bandar Seri Begawan",tz:"Asia/Brunei"},{name:"Bangkok",tz:"Asia/Bangkok"},{name:"Bangui",tz:"Africa/Bangui"},{name:"Banjul",tz:"Africa/Banjul"},{name:"Barcelona",tz:"Europe/Madrid"},{name:"Basse-Terre",tz:"America/Guadeloupe"},{name:"Beijing",tz:"Asia/Shanghai"},{name:"Beirut",tz:"Asia/Beirut"},{name:"Belém",tz:"America/Belem"},{name:"Belgrade",tz:"Europe/Belgrade"},{name:"Belfast",tz:"Europe/Belfast"},{name:"Belmopan",tz:"America/Belize"},{name:"Belushya Guba",tz:"Europe/Moscow"},{name:"Bengaluru",tz:"Asia/Kolkata"},{name:"Berlin",tz:"Europe/Berlin"},{name:"Bern",tz:"Europe/Zurich"},{name:"Bishkek",tz:"Asia/Bishkek"},{name:"Bissau",tz:"Africa/Bissau"},{name:"Bogota",tz:"America/Bogota"},{name:"Boston",tz:"America/New_York"},{name:"Brasilia",tz:"America/Sao_Paulo"},{name:"Bratislava",tz:"Europe/Bratislava"},{name:"Brazzaville",tz:"Africa/Brazzaville"},{name:"Bridgetown",tz:"America/Barbados"},{name:"Brisbane",tz:"Australia/Brisbane"},{name:"Brussels",tz:"Europe/Brussels"},{name:"Bucharest",tz:"Europe/Bucharest"},{name:"Budapest",tz:"Europe/Budapest"},{name:"Buenos Aires",tz:"America/Argentina/Buenos_Aires"},{name:"Bujumbura",tz:"Africa/Bujumbura"},{name:"Cairns",tz:"Australia/Brisbane"},{name:"Cairo",tz:"Africa/Cairo"},{name:"Calgary",tz:"America/Edmonton"},{name:"Canberra",tz:"Australia/Sydney"},{name:"Cancún",tz:"America/Cancun"},{name:"Cape Town",tz:"Africa/Johannesburg"},{name:"Caracas",tz:"America/Caracas"},{name:"Cardiff",tz:"Europe/London"},{name:"Casablanca",tz:"Africa/Casablanca"},{name:"Cayenne",tz:"America/Cayenne"},{name:"Chatham Islands",tz:"Pacific/Chatham"},{name:"Chennai",tz:"Asia/Kolkata"},{name:"Chibougamau",tz:"America/Toronto"},{name:"Chicago",tz:"America/Chicago"},{name:"Chișinău",tz:"Europe/Chisinau"},{name:"Chita",tz:"Asia/Chita"},{name:"Chongqing",tz:"Asia/Chongqing"},{name:"Ciudad de la Paz",tz:"Africa/Malabo"},{name:"Conakry",tz:"Africa/Conakry"},{name:"Copenhagen",tz:"Europe/Copenhagen"},{name:"Coral Harbour",tz:"America/Atikokan"},{name:"Córdoba",tz:"America/Argentina/Cordoba"},{name:"Dakar",tz:"Africa/Dakar"},{name:"Dallas",tz:"America/Chicago"},{name:"Damascus",tz:"Asia/Damascus"},{name:"Danmarkshavn",tz:"America/Danmarkshavn"},{name:"Dar es Salaam",tz:"Africa/Dar_es_Salaam"},{name:"Darwin",tz:"Australia/Darwin"},{name:"Denpasar",tz:"Asia/Makassar"},{name:"Denver",tz:"America/Denver"},{name:"Detroit",tz:"America/Detroit"},{name:"Dhaka",tz:"Asia/Dhaka"},{name:"Diego Garcia",tz:"Indian/Chagos"},{name:"Dili",tz:"Asia/Dili"},{name:"Djibouti",tz:"Africa/Djibouti"},{name:"Dnipro",tz:"Europe/Kyiv"},{name:"Dodoma",tz:"Africa/Dar_es_Salaam"},{name:"Doha",tz:"Asia/Qatar"},{name:"Douglas",tz:"Europe/Isle_of_Man"},{name:"Dubai",tz:"Asia/Dubai"},{name:"Dublin",tz:"Europe/Dublin"},{name:"Dushanbe",tz:"Asia/Dushanbe"},{name:"Easter Island",tz:"Pacific/Easter"},{name:"Edinburgh",tz:"Europe/London"},{name:"Edmonton",tz:"America/Edmonton"},{name:"El Aaiún",tz:"Africa/El_Aaiun"},{name:"Eucla",tz:"Australia/Eucla"},{name:"Eureka",tz:"America/Winnipeg"},{name:"Fairbanks",tz:"America/Anchorage"},{name:"Fakaofo",tz:"Pacific/Fakaofo"},{name:"Fortaleza",tz:"America/Fortaleza"},{name:"Frankfurt",tz:"Europe/Berlin"},{name:"Freetown",tz:"Africa/Freetown"},{name:"Funafuti",tz:"Pacific/Funafuti"},{name:"Gaborone",tz:"Africa/Gaborone"},{name:"Galapagos Islands",tz:"Pacific/Galapagos"},{name:"Georgetown",tz:"America/Guyana"},{name:"Gibraltar",tz:"Europe/Gibraltar"},{name:"Gitega",tz:"Africa/Bujumbura"},{name:"Glasgow",tz:"Europe/London"},{name:"Grise Fiord",tz:"America/Iqaluit"},{name:"Guatemala City",tz:"America/Guatemala"},{name:"Hagåtña",tz:"Pacific/Guam"},{name:"Halifax",tz:"America/Halifax"},{name:"Hamilton",tz:"America/Toronto"},{name:"Hanoi",tz:"Asia/Ho_Chi_Minh"},{name:"Happy Valley-Goose Bay",tz:"America/Goose_Bay"},{name:"Harare",tz:"Africa/Harare"},{name:"Havana",tz:"America/Havana"},{name:"Helsinki",tz:"Europe/Helsinki"},{name:"Hermosillo",tz:"America/Hermosillo"},{name:"Hobart",tz:"Australia/Hobart"},{name:"Hong Kong",tz:"Asia/Hong_Kong"},{name:"Honiara",tz:"Pacific/Guadalcanal"},{name:"Honolulu",tz:"Pacific/Honolulu"},{name:"Houston",tz:"America/Chicago"},{name:"Hovd",tz:"Asia/Hovd"},{name:"Indianapolis",tz:"America/Indiana/Indianapolis"},{name:"Inuvik",tz:"America/Inuvik"},{name:"Irkutsk",tz:"Asia/Irkutsk"},{name:"Islamabad",tz:"Asia/Karachi"},{name:"Istanbul",tz:"Europe/Istanbul"},{name:"Ittoqqortoormiit",tz:"America/Scoresbysund"},{name:"Izhevsk",tz:"Europe/Samara"},{name:"Jakarta",tz:"Asia/Jakarta"},{name:"Jamestown",tz:"Atlantic/St_Helena"},{name:"Jerusalem",tz:"Asia/Jerusalem"},{name:"Johannesburg",tz:"Africa/Johannesburg"},{name:"Juba",tz:"Africa/Juba"},{name:"Juneau",tz:"America/Juneau"},{name:"Kabul",tz:"Asia/Kabul"},{name:"Kaliningrad",tz:"Europe/Kaliningrad"},{name:"Kampala",tz:"Africa/Kampala"},{name:"Kangerlussuaq",tz:"America/Nuuk"},{name:"Kansas City",tz:"America/Chicago"},{name:"Karachi",tz:"Asia/Karachi"},{name:"Kathmandu",tz:"Asia/Kathmandu"},{name:"Kemi",tz:"Europe/Helsinki"},{name:"Khartoum",tz:"Africa/Khartoum"},{name:"Khatanga",tz:"Asia/Krasnoyarsk"},{name:"Kigali",tz:"Africa/Kigali"},{name:"King Edward Point",tz:"Atlantic/South_Georgia"},{name:"Kingston",tz:"America/Jamaica"},{name:"Kinshasa",tz:"Africa/Kinshasa"},{name:"Kiritimati",tz:"Pacific/Kiritimati"},{name:"Kolkata",tz:"Asia/Kolkata"},{name:"Komsomolsk-on-Amur",tz:"Asia/Vladivostok"},{name:"Krasnoyarsk",tz:"Asia/Krasnoyarsk"},{name:"Kuala Lumpur",tz:"Asia/Kuala_Lumpur"},{name:"Kuujjuaq",tz:"America/Iqaluit"},{name:"Kuwait City",tz:"Asia/Kuwait"},{name:"Kyiv",tz:"Europe/Kyiv"},{name:"La Paz",tz:"America/La_Paz"},{name:"Lagos",tz:"Africa/Lagos"},{name:"Lahore",tz:"Asia/Karachi"},{name:"Las Vegas",tz:"America/Los_Angeles"},{name:"Lhasa",tz:"Asia/Shanghai"},{name:"Libreville",tz:"Africa/Libreville"},{name:"Lilongwe",tz:"Africa/Blantyre"},{name:"Lima",tz:"America/Lima"},{name:"Lisbon",tz:"Europe/Lisbon"},{name:"Ljubljana",tz:"Europe/Ljubljana"},{name:"Lomé",tz:"Africa/Lome"},{name:"London",tz:"Europe/London"},{name:"Longyearbyen",tz:"Arctic/Longyearbyen"},{name:"Los Angeles",tz:"America/Los_Angeles"},{name:"Luanda",tz:"Africa/Luanda"},{name:"Lubumbashi",tz:"Africa/Lubumbashi"},{name:"Lusaka",tz:"Africa/Lusaka"},{name:"Luxembourg",tz:"Europe/Luxembourg"},{name:"Madrid",tz:"Europe/Madrid"},{name:"Magadan",tz:"Asia/Magadan"},{name:"Majuro",tz:"Pacific/Majuro"},{name:"Makassar",tz:"Asia/Makassar"},{name:"Malabo",tz:"Africa/Malabo"},{name:"Male",tz:"Indian/Maldives"},{name:"Managua",tz:"America/Managua"},{name:"Manama",tz:"Asia/Bahrain"},{name:"Manaus",tz:"America/Manaus"},{name:"Manila",tz:"Asia/Manila"},{name:"Manokwari",tz:"Asia/Jayapura"},{name:"Maputo",tz:"Africa/Maputo"},{name:"Marion Island",tz:"Indian/Antananarivo"},{name:"Mary's Harbour",tz:"America/St_Johns"},{name:"Maseru",tz:"Africa/Maseru"},{name:"Mbabane",tz:"Africa/Mbabane"},{name:"Melbourne",tz:"Australia/Melbourne"},{name:"Mexico City",tz:"America/Mexico_City"},{name:"Miami",tz:"America/New_York"},{name:"Midway",tz:"Pacific/Midway"},{name:"Minneapolis",tz:"America/Chicago"},{name:"Minsk",tz:"Europe/Minsk"},{name:"Mogadishu",tz:"Africa/Mogadishu"},{name:"Monaco",tz:"Europe/Monaco"},{name:"Monrovia",tz:"Africa/Monrovia"},{name:"Montevideo",tz:"America/Montevideo"},{name:"Montréal",tz:"America/Toronto"},{name:"Moroni",tz:"Indian/Comoro"},{name:"Moscow",tz:"Europe/Moscow"},{name:"Mumbai",tz:"Asia/Kolkata"},{name:"Muscat",tz:"Asia/Muscat"},{name:"Nairobi",tz:"Africa/Nairobi"},{name:"Nassau",tz:"America/Nassau"},{name:"Naypyidaw",tz:"Asia/Yangon"},{name:"N'Djamena",tz:"Africa/Ndjamena"},{name:"New Delhi",tz:"Asia/Kolkata"},{name:"New Orleans",tz:"America/Chicago"},{name:"New York",tz:"America/New_York"},{name:"Ngerulmud",tz:"Pacific/Palau"},{name:"Niamey",tz:"Africa/Niamey"},{name:"Nicosia",tz:"Asia/Nicosia"},{name:"Norilsk",tz:"Asia/Krasnoyarsk"},{name:"Nouakchott",tz:"Africa/Nouakchott"},{name:"Novosibirsk",tz:"Asia/Novosibirsk"},{name:"Nuku'alofa",tz:"Pacific/Tongatapu"},{name:"Nusantara",tz:"Asia/Makassar"},{name:"Nuuk",tz:"America/Nuuk"},{name:"Oklahoma City",tz:"America/Chicago"},{name:"Omsk",tz:"Asia/Omsk"},{name:"Oral",tz:"Asia/Oral"},{name:"Oslo",tz:"Europe/Oslo"},{name:"Ottawa",tz:"America/Toronto"},{name:"Ouagadougou",tz:"Africa/Ouagadougou"},{name:"Palikir",tz:"Pacific/Pohnpei"},{name:"Panama",tz:"America/Panama"},{name:"Papeete",tz:"Pacific/Tahiti"},{name:"Paramaribo",tz:"America/Paramaribo"},{name:"Paris",tz:"Europe/Paris"},{name:"Perth",tz:"Australia/Perth"},{name:"Petropavlovsk-Kamchatsky",tz:"Asia/Kamchatka"},{name:"Pevek",tz:"Asia/Srednekolymsk"},{name:"Philadelphia",tz:"America/New_York"},{name:"Phnom Penh",tz:"Asia/Phnom_Penh"},{name:"Phoenix",tz:"America/Phoenix"},{name:"Pituffik",tz:"America/Thule"},{name:"Podgorica",tz:"Europe/Podgorica"},{name:"Pond Inlet",tz:"America/Iqaluit"},{name:"Ponta Delgada",tz:"Atlantic/Azores"},{name:"Pontianak",tz:"Asia/Pontianak"},{name:"Port Louis",tz:"Indian/Mauritius"},{name:"Port Moresby",tz:"Pacific/Port_Moresby"},{name:"Port of Spain",tz:"America/Port_of_Spain"},{name:"Port Vila",tz:"Pacific/Efate"},{name:"Port-au-Prince",tz:"America/Port-au-Prince"},{name:"Port-aux-Francais",tz:"Indian/Kerguelen"},{name:"Porto Novo",tz:"Africa/Porto-Novo"},{name:"Prague",tz:"Europe/Prague"},{name:"Praia",tz:"Atlantic/Cape_Verde"},{name:"Pretoria",tz:"Africa/Johannesburg"},{name:"Pune",tz:"Asia/Kolkata"},{name:"Punta Arenas",tz:"America/Punta_Arenas"},{name:"Pyongyang",tz:"Asia/Pyongyang"},{name:"Qaanaaq",tz:"America/Thule"},{name:"Quito",tz:"America/Guayaquil"},{name:"Rabat",tz:"Africa/Casablanca"},{name:"Rarotonga",tz:"Pacific/Rarotonga"},{name:"Regina",tz:"America/Regina"},{name:"Resolute Bay",tz:"America/Resolute"},{name:"Reykjavik",tz:"Atlantic/Reykjavik"},{name:"Riga",tz:"Europe/Riga"},{name:"Rio Branco",tz:"America/Rio_Branco"},{name:"Rio de Janeiro",tz:"America/Sao_Paulo"},{name:"Riyadh",tz:"Asia/Riyadh"},{name:"Rome",tz:"Europe/Rome"},{name:"Rovaniemi",tz:"Europe/Helsinki"},{name:"Saint-Denis",tz:"Indian/Reunion"},{name:"Salt Lake City",tz:"America/Denver"},{name:"Samara",tz:"Europe/Samara"},{name:"San Francisco",tz:"America/Los_Angeles"},{name:"San Jose",tz:"America/Los_Angeles"},{name:"San Juan",tz:"America/Puerto_Rico"},{name:"San Salvador",tz:"America/El_Salvador"},{name:"Sana",tz:"Asia/Aden"},{name:"Santiago",tz:"America/Santiago"},{name:"Santo Domingo",tz:"America/Santo_Domingo"},{name:"São Paulo",tz:"America/Sao_Paulo"},{name:"São Tomé",tz:"Africa/Sao_Tome"},{name:"Sarajevo",tz:"Europe/Sarajevo"},{name:"Seattle",tz:"America/Los_Angeles"},{name:"Seoul",tz:"Asia/Seoul"},{name:"Shanghai",tz:"Asia/Shanghai"},{name:"Singapore",tz:"Asia/Singapore"},{name:"Skopje",tz:"Europe/Skopje"},{name:"Sofia",tz:"Europe/Sofia"},{name:"Srednekolymsk",tz:"Asia/Srednekolymsk"},{name:"Sri Jayawardenepura Kotte",tz:"Asia/Colombo"},{name:"St. John's",tz:"America/St_Johns"},{name:"Stanley",tz:"Atlantic/Stanley"},{name:"Stockholm",tz:"Europe/Stockholm"},{name:"Sucre",tz:"America/La_Paz"},{name:"Suva",tz:"Pacific/Fiji"},{name:"Sydney",tz:"Australia/Sydney"},{name:"Taipei",tz:"Asia/Taipei"},{name:"Tallinn",tz:"Europe/Tallinn"},{name:"Tarawa",tz:"Pacific/Tarawa"},{name:"Tashkent",tz:"Asia/Tashkent"},{name:"Tbilisi",tz:"Asia/Tbilisi"},{name:"Tegucigalpa",tz:"America/Tegucigalpa"},{name:"Tehran",tz:"Asia/Tehran"},{name:"Tel Aviv",tz:"Asia/Jerusalem"},{name:"Thimphu",tz:"Asia/Thimphu"},{name:"Tiksi",tz:"Asia/Yakutsk"},{name:"Timbuktu",tz:"Africa/Bamako"},{name:"Tirana",tz:"Europe/Tirana"},{name:"Tokyo",tz:"Asia/Tokyo"},{name:"Toronto",tz:"America/Toronto"},{name:"Tórshavn",tz:"Atlantic/Faroe"},{name:"Tripoli",tz:"Africa/Tripoli"},{name:"Tromsø",tz:"Europe/Oslo"},{name:"Tunis",tz:"Africa/Tunis"},{name:"Ulaanbaatar",tz:"Asia/Ulaanbaatar"},{name:"Unalaska",tz:"America/Adak"},{name:"Ürümqi",tz:"Asia/Urumqi"},{name:"Valletta",tz:"Europe/Malta"},{name:"Vancouver",tz:"America/Vancouver"},{name:"Vatican City",tz:"Europe/Vatican"},{name:"Verkhoyansk",tz:"Asia/Vladivostok"},{name:"Victoria",tz:"Indian/Mahe"},{name:"Vienna",tz:"Europe/Vienna"},{name:"Vientiane",tz:"Asia/Vientiane"},{name:"Vilnius",tz:"Europe/Vilnius"},{name:"Vladivostok",tz:"Asia/Vladivostok"},{name:"Wake Island",tz:"Pacific/Wake"},{name:"Warsaw",tz:"Europe/Warsaw"},{name:"Washington DC",tz:"America/New_York"},{name:"Wellington",tz:"Pacific/Auckland"},{name:"Whitehorse",tz:"America/Whitehorse"},{name:"Windhoek",tz:"Africa/Windhoek"},{name:"Winnipeg",tz:"America/Winnipeg"},{name:"Yakutsk",tz:"Asia/Yakutsk"},{name:"Yamoussoukro",tz:"Africa/Abidjan"},{name:"Yangon",tz:"Asia/Yangon"},{name:"Yaoundé",tz:"Africa/Douala"},{name:"Yaren",tz:"Pacific/Nauru"},{name:"Yekaterinburg",tz:"Asia/Yekaterinburg"},{name:"Yerevan",tz:"Asia/Yerevan"},{name:"Yuzhno-Sakhalinsk",tz:"Asia/Sakhalin"},{name:"Zagreb",tz:"Europe/Zagreb"},{name:"Zürich",tz:"Europe/Zurich"}
-    ];
+    // --- DB ---
+    const cityDB = [ {name:"London",tz:"Europe/London"},{name:"New York",tz:"America/New_York"},{name:"Tokyo",tz:"Asia/Tokyo"},{name:"Paris",tz:"Europe/Paris"},{name:"Sydney",tz:"Australia/Sydney"},{name:"Dubai",tz:"Asia/Dubai"},{name:"Berlin",tz:"Europe/Berlin"},{name:"Singapore",tz:"Asia/Singapore"},{name:"Los Angeles",tz:"America/Los_Angeles"},{name:"Hong Kong",tz:"Asia/Hong_Kong"},{name:"Mumbai",tz:"Asia/Kolkata"} ];
     const dateTokens = [ {v:'day_name_full',t:'Day Name'},{v:'day_name_short',t:'Day (Mon)'},{v:'date_num',t:'Date (28)'},{v:'month_full',t:'Month Name'},{v:'month_short',t:'Month (Jan)'},{v:'month_num',t:'Month (01)'},{v:'year',t:'Year'},{v:'week_num',t:'Week #'},{v:'day_year',t:'Day of Year'},{v:'quarter',t:'Quarter'},{v:'separator',t:'Separator'},{v:'space',t:'Space'},{v:'slash',t:'/'} ];
     const colorPalette = [ {val:'default', hex:'#FFFFFF', name:'Default (White)'}, {val:'#34495e', hex:'#34495e', name:'Navy'}, {val:'#3498db', hex:'#3498db', name:'Blue'}, {val:'#27ae60', hex:'#27ae60', name:'Green'}, {val:'#c0392b', hex:'#c0392b', name:'Red'}, {val:'#f39c12', hex:'#f39c12', name:'Orange'}, {val:'#8e44ad', hex:'#8e44ad', name:'Purple'}, {val:'#7f8c8d', hex:'#7f8c8d', name:'Grey'} ];
 
-    // --- INIT ---
     function init() {
         try {
             const h = window.location.hash.substring(1);
@@ -256,22 +307,24 @@
             div.className = 'widget-block';
             div.id = `card-${i}`; div.draggable = true; div.dataset.index = i;
             
-            // STACKING LOGIC: Cols 1-12, Rows px
             div.style.gridColumn = `span ${b.cols||6}`;
+            div.style.gridRowEnd = `span ${Math.ceil((b.height||100)/50)}`; // Snap to 50px grid
             div.style.height = `${b.height||100}px`;
             
             let bg = b.bgColor || '#ffffff';
             let txt = b.textColor || '#333333';
             if(b.type === 'empty') { bg = 'transparent'; div.style.borderStyle = 'dashed'; div.style.opacity = '0.5'; }
             
+            let inner = `<div class="block-inner" style="background:${bg}; color:${txt}">
+                ${renderBlockContent(b)}
+            </div>`;
+            
             div.innerHTML = `
                 <div class="block-controls">
                     <div class="ctrl-btn" onclick="openModal(${i})">⚙️</div>
                     <div class="ctrl-btn ctrl-del" onclick="delBlock(${i})">✕</div>
                 </div>
-                <div class="block-inner" style="background:${bg}; color:${txt}">
-                    ${renderBlockContent(b)}
-                </div>
+                ${inner}
                 <div class="handle-w" onmousedown="initResize(${i},'w',event)"></div>
                 <div class="handle-h" onmousedown="initResize(${i},'h',event)"></div>
             `;
@@ -285,26 +338,22 @@
         if(b.type==='header') h = `<div class="txt-lg">${b.text}</div>`;
         else if(b.type==='world_clock') {
             if(b.locations) b.locations.forEach(l => {
-                let ts = new Date().toLocaleTimeString('en-US', {timeZone:l.timezone, hour:settings.use24h=='24'?'2-digit':'numeric', minute:'2-digit', second:b.showSeconds?'2-digit':undefined});
+                let ts = new Date().toLocaleTimeString('en-US', {timeZone:l.timezone, hour:settings.use24h=='24'?'2-digit':'numeric', minute:'2-digit'});
                 h += `<div style="display:flex;justify-content:space-between;width:100%;font-size:0.9em;border-bottom:1px solid rgba(0,0,0,0.05)"><span>${l.label}</span><span style="font-weight:700">${ts}</span></div>`;
             });
         }
-        else if(b.type==='date_display') {
-            // Preview only in Admin
-            h = `<div class="txt-lg">${b.line1.length} Items</div><div class="txt-sub">${b.line2.length} Items</div>`;
-        }
+        else if(b.type==='date_display') h = `<div class="txt-lg">Monday</div><div class="txt-sub">Jan 01</div>`;
         else if(b.type==='visual_grid') {
             h = `<div class="txt-lbl">${b.gridType.toUpperCase()} GRID</div><div class="grid-container" style="display:flex;gap:2px">`;
-            for(let i=0; i<30; i++) h+=`<div style="width:10px;height:10px;background:${acc};opacity:0.3"></div>`;
+            for(let i=0; i<20; i++) h+=`<div style="width:10px;height:10px;background:${acc};opacity:0.3"></div>`;
             h += `</div>`;
         }
-        else if(b.type !== 'empty') {
-            h = `<div class="txt-lbl">${b.type.replace('_',' ')}</div><div class="txt-lg">${b.label||''}</div>`;
-        }
+        else if(b.type==='moon_phase') h = `<div style="font-size:2em">🌔</div><div class="txt-sub">Waxing Gibbous</div>`;
+        else if(b.type!=='empty') h = `<div class="txt-lbl">${b.type.replace('_',' ')}</div><div class="txt-lg">${b.label||''}</div>`;
         return h;
     }
 
-    // --- MODAL ENGINE (DOM MOVE) ---
+    // --- MODAL ENGINE (WAREHOUSE MOVER) ---
     window.openModal = (i) => {
         editIdx = i; const b = blocks[i];
         document.getElementById('in-cols').value = b.cols || 6;
@@ -312,61 +361,54 @@
         document.getElementById('in-label').value = b.label || '';
         document.getElementById('in-text').value = b.text || '';
         
-        // Hide/Show Basic
         const noLbl = ['date_display','world_clock','empty','spacer'];
         document.getElementById('wrap-label').style.display = noLbl.includes(b.type) ? 'none' : 'block';
         document.getElementById('wrap-text').style.display = b.type==='header' ? 'block' : 'none';
         
-        // 1. Move Colors
+        // Colors
         const colSlot = document.getElementById('color-slot');
         colSlot.innerHTML = ''; 
         const colTpl = document.getElementById('tpl-colors');
-        colSlot.appendChild(colTpl); // Move DOM
+        colSlot.appendChild(colTpl); 
         
-        // Bind Colors
         ['bgColor','textColor','accentColor'].forEach(k => {
             const sel = colTpl.querySelector(`select[data-ref="${k==='bgColor'?'bg-sel':k==='textColor'?'txt-sel':'acc-sel'}"]`);
             const pick = colTpl.querySelector(`input[data-ref="${k==='bgColor'?'bg-pick':k==='textColor'?'txt-pick':'acc-pick'}"]`);
-            // Fill
             sel.innerHTML = colorPalette.map(c=>`<option value="${c.hex}">${c.name}</option>`).join('') + `<option value="custom">Custom</option>`;
-            // Set
             let val = b[k] || (k==='bgColor'?'#ffffff': k==='accentColor'?'#3498db':'#333333');
             pick.value = val;
             let match = colorPalette.find(c=>c.hex.toLowerCase()===val.toLowerCase());
             sel.value = match ? match.hex : 'custom';
-            // Logic
             sel.onchange = () => { if(sel.value!=='custom') pick.value = sel.value; };
             pick.onchange = () => { sel.value = 'custom'; };
         });
 
-        // 2. Move Dynamic Form
+        // Dynamic Form
         const dynSlot = document.getElementById('modal-slot');
-        // Return previous form to warehouse if exists
         Array.from(dynSlot.children).forEach(c => document.getElementById('warehouse').appendChild(c));
         
-        const tplId = `set-${b.type}`;
-        const tpl = document.getElementById(tplId);
+        const tpl = document.getElementById(`set-${b.type}`);
         if(tpl) {
-            dynSlot.appendChild(tpl); // MOVE DOM
-            // Bind Toggles
+            dynSlot.appendChild(tpl);
+            // Re-Bind Data
             if(b.type==='world_clock') {
                 tpl.querySelectorAll('input[type="checkbox"]').forEach(ch => ch.checked = b[ch.dataset.key] === true);
-                renderCityList();
-                bindCitySearch();
+                renderCityList(); bindCitySearch();
             }
-            if(b.type==='date_display') {
-                renderDateList('mod-l1', b.line1);
-                renderDateList('mod-l2', b.line2);
-            }
+            if(b.type==='date_display') { renderDateList('mod-l1', b.line1); renderDateList('mod-l2', b.line2); }
             if(b.type==='visual_grid') {
-                tpl.querySelector('select[data-key="gridType"]').value = b.gridType;
-                tpl.querySelector('select[data-key="shape"]').value = b.shape;
+                tpl.querySelectorAll('select, input').forEach(el => { if(b[el.dataset.key]) el.value = b[el.dataset.key]; });
                 toggleGridFields();
-                tpl.querySelector('input[data-key="dob"]').value = b.dob || '';
-                tpl.querySelector('input[data-key="expectancy"]').value = b.expectancy || '';
+            }
+            if(b.type==='progress_group') renderProgList();
+            if(b.type==='sequence') renderSteps();
+            if(b.type==='moon_phase' || b.type==='countdown' || b.type==='timer' || b.type==='progress_custom' || b.type==='progress_cycle' || b.type==='spacer') {
+                tpl.querySelectorAll('select, input').forEach(el => { 
+                    if(el.type==='checkbox') el.checked = b[el.dataset.key]===true;
+                    else if(b[el.dataset.key]) el.value = b[el.dataset.key]; 
+                });
             }
         }
-
         document.getElementById('modal-overlay').style.display = 'flex';
     };
 
@@ -374,32 +416,23 @@
         const b = blocks[editIdx];
         b.cols = parseInt(document.getElementById('in-cols').value);
         b.height = parseInt(document.getElementById('in-rows').value);
-        if(document.getElementById('wrap-label').style.display !== 'none') b.label = document.getElementById('in-label').value;
-        if(document.getElementById('wrap-text').style.display !== 'none') b.text = document.getElementById('in-text').value;
+        if(document.getElementById('wrap-label').style.display!=='none') b.label = document.getElementById('in-label').value;
+        if(document.getElementById('wrap-text').style.display!=='none') b.text = document.getElementById('in-text').value;
         
-        // Colors
         const colTpl = document.getElementById('tpl-colors');
         b.bgColor = colTpl.querySelector('input[data-ref="bg-pick"]').value;
         b.textColor = colTpl.querySelector('input[data-ref="txt-pick"]').value;
         b.accentColor = colTpl.querySelector('input[data-ref="acc-pick"]').value;
-        
-        // Return Colors to Warehouse
         document.getElementById('warehouse').appendChild(colTpl);
         
-        // Specifics
         const slot = document.getElementById('modal-slot');
         if(slot.children.length > 0) {
             const form = slot.children[0];
-            if(b.type==='world_clock') {
-                form.querySelectorAll('input[type="checkbox"]').forEach(ch => b[ch.dataset.key] = ch.checked);
-            }
-            if(b.type==='visual_grid') {
-                b.gridType = form.querySelector('select[data-key="gridType"]').value;
-                b.shape = form.querySelector('select[data-key="shape"]').value;
-                b.dob = form.querySelector('input[data-key="dob"]').value;
-                b.expectancy = form.querySelector('input[data-key="expectancy"]').value;
-            }
-            // Return to Warehouse
+            form.querySelectorAll('input, select').forEach(el => {
+                if(el.dataset.key) {
+                    b[el.dataset.key] = el.type==='checkbox' ? el.checked : el.value;
+                }
+            });
             document.getElementById('warehouse').appendChild(form);
         }
         
@@ -407,7 +440,6 @@
     };
     
     window.closeModal = () => {
-        // Safe Close: Return everything to warehouse
         const slot = document.getElementById('modal-slot');
         Array.from(slot.children).forEach(c => document.getElementById('warehouse').appendChild(c));
         const cSlot = document.getElementById('color-slot');
@@ -415,46 +447,53 @@
         document.getElementById('modal-overlay').style.display = 'none';
     };
 
-    // --- DOM LOGIC (V59) ---
+    // --- LIST LOGIC ---
     function renderCityList() {
-        const list = document.getElementById('list-cities'); list.innerHTML = '';
-        blocks[editIdx].locations.forEach((l, i) => {
-            list.innerHTML += `<div class="sub-item">
-                <button class="btn-mini" onclick="movCity(${i},-1)">↑</button>
-                <input style="flex:1" value="${l.label}" oninput="blocks[editIdx].locations[${i}].label=this.value">
-                <button class="btn-mini" style="background:#fadbd8;color:#c0392b" onclick="delCity(${i})">×</button>
-            </div>`;
+        const l = document.getElementById('list-cities'); l.innerHTML = '';
+        blocks[editIdx].locations.forEach((loc, i) => {
+            l.innerHTML += `<div class="sub-item"><button class="btn-mini" onclick="movCity(${i},-1)">↑</button><input style="flex:1" value="${loc.label}" oninput="blocks[editIdx].locations[${i}].label=this.value"><button class="btn-mini" style="background:#fadbd8;color:#c0392b" onclick="delCity(${i})">×</button></div>`;
         });
     }
     window.movCity = (i, d) => { const a = blocks[editIdx].locations; if(i+d>=0 && i+d<a.length) { [a[i],a[i+d]] = [a[i+d],a[i]]; renderCityList(); } };
     window.delCity = (i) => { blocks[editIdx].locations.splice(i, 1); renderCityList(); };
-    
     function bindCitySearch() {
-        const inp = document.getElementById('city-search');
-        const res = document.getElementById('city-results');
+        const inp = document.getElementById('city-search'); const res = document.getElementById('city-results');
         inp.oninput = () => {
             const v = inp.value.toLowerCase(); res.innerHTML=''; res.style.display='none';
             if(v.length<2) return;
             const m = cityDB.filter(c=>c.name.toLowerCase().includes(v));
-            if(m.length) { 
-                res.style.display='block'; 
-                m.forEach(x => { res.innerHTML += `<div class="city-opt" onclick="addCity('${x.name}','${x.tz}')">${x.name}</div>`; }); 
-            }
+            if(m.length) { res.style.display='block'; m.forEach(x => { res.innerHTML += `<div class="city-opt" onclick="addCity('${x.name}','${x.tz}')">${x.name}</div>`; }); }
         };
     }
     window.addCity = (n, t) => { blocks[editIdx].locations.push({label:n, timezone:t}); renderCityList(); document.getElementById('city-results').style.display='none'; document.getElementById('city-search').value=''; };
 
     function renderDateList(id, arr) {
-        const list = document.getElementById(id); list.innerHTML = '';
+        const l = document.getElementById(id); l.innerHTML = '';
         arr.forEach((t, i) => {
             let val = typeof t === 'string' ? t : t.type;
             let opts = dateTokens.map(dt => `<option value="${dt.v}" ${val===dt.v?'selected':''}>${dt.t}</option>`).join('');
-            list.innerHTML += `<div class="sub-item"><button class="btn-mini" onclick="movDate('${id}',${i},-1)">↑</button><select onchange="blocks[editIdx]['${id==='mod-l1'?'line1':'line2'}'][${i}]=this.value">${opts}</select><button class="btn-mini" style="background:#fadbd8;color:#c0392b" onclick="delDate('${id}',${i})">×</button></div>`;
+            l.innerHTML += `<div class="sub-item"><button class="btn-mini" onclick="movDate('${id}',${i},-1)">↑</button><select onchange="blocks[editIdx]['${id==='mod-l1'?'line1':'line2'}'][${i}]=this.value">${opts}</select><button class="btn-mini" style="background:#fadbd8;color:#c0392b" onclick="delDate('${id}',${i})">×</button></div>`;
         });
     }
     window.addDateItem = (l) => { blocks[editIdx][l].push('space'); renderDateList(l==='line1'?'mod-l1':'mod-l2', blocks[editIdx][l]); };
     window.delDate = (id, i) => { let k = id==='mod-l1'?'line1':'line2'; blocks[editIdx][k].splice(i, 1); renderDateList(id, blocks[editIdx][k]); };
     window.movDate = (id, i, d) => { let k = id==='mod-l1'?'line1':'line2'; let a = blocks[editIdx][k]; if(i+d>=0 && i+d<a.length) { [a[i],a[i+d]] = [a[i+d],a[i]]; renderDateList(id, a); } };
+
+    function renderProgList() {
+        const l = document.getElementById('list-prog'); l.innerHTML='';
+        blocks[editIdx].items.forEach((it, i) => {
+            l.innerHTML += `<div class="sub-item"><input type="checkbox" ${it.visible!==false?'checked':''} onchange="blocks[editIdx].items[${i}].visible=this.checked"><span style="font-size:0.8rem;width:50px">${it.type}</span><input value="${it.label}" oninput="blocks[editIdx].items[${i}].label=this.value">` + (it.type==='life' ? `<input type="date" value="${it.dob||''}" onchange="blocks[editIdx].items[${i}].dob=this.value">`:'') + `</div>`;
+        });
+    }
+    function renderSteps() {
+        const l = document.getElementById('list-steps'); l.innerHTML='';
+        blocks[editIdx].steps.forEach((s, i) => {
+            l.innerHTML += `<div class="sub-item"><button class="btn-mini" onclick="movStep(${i},-1)">↑</button><input value="${s.label}" oninput="blocks[editIdx].steps[${i}].label=this.value"><input type="number" value="${s.duration}" style="width:50px" oninput="blocks[editIdx].steps[${i}].duration=this.value"><button class="btn-mini" style="background:#fadbd8;color:#c0392b" onclick="delStep(${i})">×</button></div>`;
+        });
+    }
+    window.addStep = () => { blocks[editIdx].steps.push({label:'Step', duration:10}); renderSteps(); };
+    window.delStep = (i) => { blocks[editIdx].steps.splice(i, 1); renderSteps(); };
+    window.movStep = (i, d) => { const a = blocks[editIdx].steps; if(i+d>=0 && i+d<a.length) { [a[i],a[i+d]] = [a[i+d],a[i]]; renderSteps(); } };
 
     window.toggleGridFields = () => {
         const t = document.querySelector('#set-visual_grid select[data-key="gridType"]').value;
@@ -482,6 +521,10 @@
         if(t==='world_clock') { b.locations = [{label:'London',timezone:'Europe/London'}]; b.height = 100; b.showSeconds=false; b.showDate=true; }
         if(t==='date_display') { b.line1=['day_name_full']; b.line2=['date_num','month_full']; b.height=80; }
         if(t==='visual_grid') { b.gridType='year'; b.shape='square'; b.height=150; }
+        if(t==='progress_group') { b.items = [{type:'life', label:'Life', visible:true},{type:'year', label:'Year', visible:true}]; b.height=120; }
+        if(t==='sequence') b.steps = [{label:'Focus', duration:25}];
+        if(t==='spacer') b.height = 30;
+        if(t==='empty') b.height = 50;
         blocks.push(b); render(); updateLink();
         const area = document.querySelector('.canvas-area'); setTimeout(() => area.scrollTop = area.scrollHeight, 50);
     };
@@ -492,7 +535,7 @@
     window.openLink = () => window.open(document.getElementById('result-url').value, '_blank');
     window.refresh = () => render();
 
-    // RESIZE
+    // DRAG RESIZE
     window.initResize = (i, m, e) => { e.stopPropagation(); resizingIdx = i; resizeMode = m; startX = e.clientX; startY = e.clientY; startW = document.getElementById(`card-${i}`).offsetWidth; startH = blocks[i].height; };
     window.handleDrag = (e) => {
         if(resizingIdx === -1) return;
@@ -501,7 +544,7 @@
             const gridW = document.getElementById('canvas').offsetWidth / 12;
             const px = startW + (e.clientX - startX);
             b.cols = Math.max(1, Math.min(12, Math.round(px / gridW)));
-        } else { b.height = Math.max(40, startH + (e.clientY - startY)); }
+        } else { b.height = Math.max(30, startH + (e.clientY - startY)); }
         render();
     };
     window.stopDrag = () => { if(resizingIdx !== -1) { resizingIdx = -1; updateLink(); } };
