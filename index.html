@@ -3,37 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Widget V70</title>
+    <title>Widget V71</title>
     <style>
-        :root { --c-bg: #FFFFFF; --c-txt: #37352F; --font: sans-serif; --pad: 1rem; --base-size: 16px; }
+        :root { --c-bg: #FFFFFF; --c-txt: #333; --font: sans-serif; --pad: 1rem; --base-size: 16px; }
         @media (prefers-color-scheme: dark) { :root { --c-bg: #191919; --c-txt: #D4D4D4; } }
-        
         body { margin: 0; padding: var(--pad); font-family: var(--font); background: var(--c-bg); color: var(--c-txt); font-size: var(--base-size); overflow-x: hidden; }
         
         #dashboard { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 10px; width: 100%; }
         
         .widget-block {
-            box-sizing: border-box; position: relative; border-radius: 8px;
-            overflow: hidden; display: flex; flex-direction: column; justify-content: center;
+            box-sizing: border-box; border-radius: 8px; overflow: hidden;
+            display: flex; flex-direction: column; justify-content: center;
             padding: var(--pad); transition: all 0.2s ease;
         }
         
-        /* THEMES */
         .theme-card .widget-block { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .theme-minimal .widget-block { background: transparent !important; }
         
         .txt-lg { font-size: 1.5em; font-weight: 700; line-height: 1.1; }
         .txt-sub { font-size: 0.85em; opacity: 0.8; }
-        .txt-label { font-size: 0.7em; text-transform: uppercase; opacity: 0.6; font-weight: 600; margin-bottom: 4px; }
-        
+        .txt-lbl { font-size: 0.7em; text-transform: uppercase; font-weight: 700; opacity: 0.5; margin-bottom: 4px; }
         .clock-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 4px 0; }
-        .grid-container { display: flex; flex-wrap: wrap; gap: 2px; }
-        .grid-cell { border-radius: 1px; flex-shrink: 0; opacity: 0.15; background: currentColor; }
-        .grid-cell.filled { opacity: 0.9; }
-        .prog-row { margin-bottom: 6px; width: 100%; }
-        .prog-track { height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; }
-        .prog-fill { height: 100%; background: currentColor; }
-        .spacer-line { width: 100%; opacity: 0.5; }
         
         .edit-fab { position: fixed; top: 10px; right: 10px; width: 35px; height: 35px; background: #fff; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9999; color: #333; text-decoration: none; }
     </style>
@@ -53,24 +43,18 @@
 
             const s = data.settings || {};
             const r = document.documentElement;
-            r.style.setProperty('--font', s.font === 'serif' ? 'Georgia' : s.font === 'mono' ? 'monospace' : 'sans-serif');
-            r.style.setProperty('--pad', s.padding === 'compact' ? '0.5rem' : s.padding === 'spacious' ? '1.5rem' : '1rem');
-            r.style.setProperty('--base-size', s.textSize === 'small' ? '14px' : s.textSize === 'large' ? '18px' : '16px');
+            r.style.setProperty('--font', s.font==='serif'?'Georgia':s.font==='mono'?'monospace':'sans-serif');
+            r.style.setProperty('--pad', s.padding==='compact'?'0.5rem':s.padding==='spacious'?'1.5rem':'1rem');
+            r.style.setProperty('--base-size', s.textSize==='small'?'14px':s.textSize==='large'?'18px':'16px');
             document.body.className = `theme-${s.theme}`;
-            if(s.theme === 'card') document.getElementById('dashboard').style.gap = '15px';
-
+            
             const root = document.getElementById('dashboard');
             root.innerHTML = '';
-
-            const params = new URLSearchParams(window.location.search);
-            if(params.get('preview') !== 'true') {
-                document.getElementById('edit-btn').style.display = 'flex';
-                document.getElementById('edit-btn').onclick = (e) => {
-                    e.preventDefault();
-                    let url = window.location.href.split('#')[0].replace('index.html', 'admin.html');
-                    if(url.endsWith('/')) url += 'admin.html';
-                    window.location.href = url + window.location.hash;
-                };
+            
+            if(new URLSearchParams(window.location.search).get('preview')!=='true') {
+                const btn = document.getElementById('edit-btn');
+                btn.style.display = 'flex';
+                btn.onclick = (e) => { e.preventDefault(); window.location.href = window.location.href.replace('index.html','admin.html'); };
             }
 
             data.blocks.forEach(b => {
@@ -78,68 +62,34 @@
                 div.className = 'widget-block';
                 div.style.width = `calc(${b.width}% - 10px)`;
                 div.style.height = `${b.height}px`;
+                div.style.background = b.bgColor || '#fff';
+                div.style.color = b.textColor || '#333';
+                if(b.type === 'empty') div.style.background = 'transparent';
                 
-                let bg = b.bgColor || '#fff';
-                let txt = b.textColor || '#333';
-                if(b.type === 'empty') { bg = 'transparent'; }
-                
-                div.style.background = bg;
-                div.style.color = txt;
-                
-                if(b.type !== 'empty') div.innerHTML = renderBlockContent(b, s);
+                div.innerHTML = renderContent(b, s);
                 root.appendChild(div);
             });
         }
 
-        // --- SHARED RENDER LOGIC (MUST MATCH ADMIN EXACTLY) ---
-        function renderBlockContent(b, s) {
+        function renderContent(b, s) {
             let h = '';
-            let acc = b.accentColor || '#3498db';
-            
-            if(b.type === 'header') h = `<div class="txt-lg">${b.text}</div>`;
-            else if(b.type === 'date_display') {
+            if(b.type==='header') h = `<div class="txt-lg">${b.text}</div>`;
+            else if(b.type==='date_display') {
                 h = `<div class="txt-lg">${buildDate(b.line1)}</div><div class="txt-sub">${buildDate(b.line2)}</div>`;
             }
-            else if(b.type === 'world_clock') {
-                if(b.locations) {
-                    b.locations.forEach(loc => {
-                        let timeOpt = { timeZone: loc.timezone, hour: s.use24h=='24'?'2-digit':'numeric', minute:'2-digit' };
-                        if(b.showSeconds) timeOpt.second = '2-digit';
-                        let ts = new Date().toLocaleTimeString('en-US', timeOpt);
-                        let ds = b.showDate ? new Date().toLocaleDateString('en-US', {weekday:'short', day:'numeric'}) : '';
-                        let tz = b.showTimezone ? `<span style="opacity:0.5;font-size:0.7em">(${loc.timezone.split('/')[1]})</span>` : '';
-                        h += `<div class="clock-row">
-                            <div><div style="font-weight:600">${loc.label} ${tz}</div><div style="font-size:0.7em;opacity:0.7">${ds}</div></div>
-                            <div class="txt-lg" style="font-family:monospace">${ts}</div>
-                        </div>`;
-                    });
-                }
-            }
-            else if(b.type === 'visual_grid') {
-                let size = b.blockSize === '24px' ? 24 : 14;
-                h = `<div class="txt-label">${b.gridType} Grid</div><div class="grid-container">`;
-                for(let i=0; i<30; i++) {
-                    h += `<div class="grid-cell ${i<10?'filled':''}" style="width:${size}px;height:${size}px;color:${acc}"></div>`;
-                }
-                h += `</div>`;
-            }
-            else if(b.type === 'progress_group') {
-                if(b.items) b.items.forEach(it => {
-                    if(it.visible !== false) {
-                        h += `<div class="prog-row"><div class="prog-meta"><span>${it.label}</span><span>45%</span></div><div class="prog-track"><div class="prog-fill" style="width:45%;color:${acc}"></div></div></div>`;
-                    }
+            else if(b.type==='world_clock') {
+                if(b.locations) b.locations.forEach(l => {
+                    let ts = new Date().toLocaleTimeString('en-US', {timeZone:l.timezone, hour:s.use24h=='24'?'2-digit':'numeric', minute:'2-digit', second:b.showSeconds?'2-digit':undefined});
+                    let ds = b.showDate ? new Date().toLocaleDateString('en-US', {weekday:'short',day:'numeric'}) : '';
+                    let tz = b.showTimezone ? `<span style="opacity:0.5;font-size:0.7em">(${l.timezone.split('/')[1]})</span>` : '';
+                    h += `<div class="clock-row">
+                        <div><div style="font-weight:600">${l.label} ${tz}</div><div style="font-size:0.7em;opacity:0.7">${ds}</div></div>
+                        <div class="txt-lg" style="font-family:monospace">${ts}</div>
+                    </div>`;
                 });
             }
-            else if(b.type === 'countdown') {
-                h = `<div style="display:flex;justify-content:space-between;align-items:center;background:${acc}20;padding:10px;border-radius:6px;width:100%">
-                    <span style="font-weight:600">${b.label}</span><span style="font-size:1.2em;font-weight:bold;color:${acc}">-- Days</span>
-                </div>`;
-            }
-            else if(b.type === 'spacer') {
-                h = `<div class="spacer-line" style="border-bottom:${b.thickness||'2px'} ${b.style||'solid'} ${acc}"></div>`;
-            }
             else if(b.type !== 'empty') {
-                h = `<div class="txt-label">${b.type.replace('_',' ')}</div><div class="txt-lg">${b.label||''}</div>`;
+                h = `<div class="txt-lbl">${b.type.replace('_',' ')}</div><div class="txt-lg">${b.label||''}</div>`;
             }
             return h;
         }
@@ -153,19 +103,12 @@
                 if(t==='month_full') return now.toLocaleDateString([], {month:'long'});
                 if(t==='space') return ' ';
                 if(t==='separator') return '|';
-                if(t==='day_year') {
-                    const start = new Date(now.getFullYear(), 0, 0);
-                    const diff = now - start;
-                    const day = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    return `Day ${day}/365`;
-                }
-                return t;
+                return t; 
             }).join('');
         }
 
         window.addEventListener('hashchange', render);
-        render();
-        setInterval(render, 1000);
+        render(); setInterval(render, 1000);
     </script>
 </body>
 </html>
