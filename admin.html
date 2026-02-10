@@ -3,93 +3,539 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Widget V67</title>
+    <title>Widget Admin V68</title>
     <style>
-        :root { --c-bg: #fff; --c-txt: #333; }
-        body { margin: 0; font-family: sans-serif; padding: 1rem; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 10px; }
-        .widget-block {
-            box-sizing: border-box;
-            padding: 15px;
-            /* Viewer uses clean borders */
-            border: 1px solid transparent; 
-            border-radius: 8px;
-            overflow: hidden;
+        /* CORE */
+        * { box-sizing: border-box; }
+        :root { --c-accent: #34495e; --bg-canvas: #f4f5f7; }
+        html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg-canvas); color: #37352f; overflow: hidden; }
+        
+        .app-container { display: flex; flex-direction: column; height: 100vh; }
+        
+        /* HEADER */
+        .app-header { background: #fff; border-bottom: 1px solid #ddd; z-index: 100; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .header-bar { padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; background: #fff; position: relative; z-index: 2; border-bottom: 1px solid #eee; }
+        .header-title { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+        .header-title span { font-size: 0.8rem; color: #999; }
+        .header-actions { display: flex; gap: 8px; }
+        
+        /* SETTINGS TOGGLE (Dark when collapsed) */
+        .settings-toggle { background: #2c3e50; color: white; padding: 10px 20px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .settings-toggle:hover { background: #34495e; }
+        
+        /* PANELS */
+        .panel { background: #fff; overflow: hidden; max-height: 0; transition: max-height 0.3s ease-out; border-bottom: 1px solid #ddd; }
+        .panel.open { max-height: 400px; padding: 20px; overflow-y: auto; }
+        .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .panel label { font-size: 0.75rem; font-weight: 700; color: #7f8c8d; margin-bottom: 5px; display: block; text-transform: uppercase; }
+        
+        /* BUTTONS */
+        button.btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: 600; font-size: 0.8rem; cursor: pointer; color: white; transition: opacity 0.2s; }
+        button.btn:hover { opacity: 0.9; }
+        .btn-blue { background: #3498db; } .btn-green { background: #27ae60; } .btn-grey { background: #7f8c8d; }
+        
+        /* CANVAS (The Editor) */
+        .canvas-area { 
+            flex-grow: 1; 
+            overflow-y: auto; 
+            padding: 20px; 
+            padding-bottom: 120px; /* Space for Fixed Footer */
+            position: relative; 
+            background: #f4f5f7; 
+            display: flex; 
+            flex-wrap: wrap; 
+            align-content: flex-start; 
+            gap: 10px;
+        }
+        .canvas-watermark { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            font-size: 2rem; font-weight: 700; color: rgba(0,0,0,0.05); pointer-events: none; text-transform: uppercase; 
+        }
+        
+        /* BLOCK STYLE (Bubble) */
+        .widget-block { 
+            position: relative; 
+            border-radius: 8px; 
+            min-height: 80px; 
+            transition: all 0.1s;
             display: flex; flex-direction: column; justify-content: center;
+            overflow: hidden;
+            /* Admin Visuals */
+            border: 2px dashed #bdc3c7; 
+            background: #fff; 
+            padding: 10px;
         }
-        /* THEMES */
-        .theme-card .widget-block { border: 1px solid #eee; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .theme-minimal .widget-block { border: none; background: transparent; }
+        .widget-block:hover { border-color: #3498db; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 10; }
+        .widget-block.dragging { opacity: 0.5; transform: scale(0.98); border-style: solid; }
         
-        .txt-lg { font-size: 1.5em; font-weight: 700; }
-        .txt-sm { opacity: 0.7; font-size: 0.8em; }
-        
-        /* BUBBLE STYLE FOR COUNTDOWN */
-        .countdown-bubble { 
-            /* Accent Color Applied Here */
-            padding: 5px 10px; border-radius: 8px; 
-            display: flex; justify-content: space-between; 
-            font-size: 1.1em; font-weight: bold;
-            height: 100%; align-items: center;
+        /* PREVIEW CONTENT INSIDE BLOCK */
+        .preview-content { 
+            width: 100%; height: 100%; 
+            display: flex; flex-direction: column; justify-content: center;
+            border-radius: 6px; 
+            padding: 10px;
+            pointer-events: none; /* Allow drag on container */
         }
+        .p-head { font-size: 1.2em; font-weight: 700; line-height: 1.2; }
+        .p-sub { font-size: 0.85em; opacity: 0.8; }
+        
+        /* CONTROLS */
+        .block-controls { position: absolute; top: 5px; right: 5px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; z-index: 20; }
+        .widget-block:hover .block-controls { opacity: 1; }
+        .ctrl-btn { width: 26px; height: 26px; border-radius: 4px; border: 1px solid #ccc; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #555; }
+        .ctrl-btn:hover { background: #f0f0f0; }
+        .ctrl-del { color: #c0392b; background: #fadbd8; border-color: #e6b0aa; }
+        
+        /* RESIZE HANDLES */
+        .resize-w { position: absolute; top: 0; bottom: 10px; right: 0; width: 10px; cursor: col-resize; z-index: 15; }
+        .resize-h { position: absolute; bottom: 0; left: 0; right: 0; height: 10px; cursor: row-resize; z-index: 15; }
+        .resize-w:hover, .resize-h:hover { background: rgba(52, 152, 219, 0.2); }
+
+        /* FOOTER (Fixed Sticky) */
+        .app-footer { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            background: #fff; border-top: 1px solid #ccc; 
+            padding: 10px 15px; z-index: 900; 
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1); 
+        }
+        .footer-scroll { overflow-x: auto; white-space: nowrap; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
+        .footer-buttons { display: inline-flex; gap: 8px; }
+        .add-btn { padding: 8px 12px; border: none; border-radius: 4px; font-weight: 600; font-size: 0.75rem; color: white; cursor: pointer; transition: transform 0.1s; }
+        .add-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+        
+        /* FOOTER PALETTE */
+        .c-text { background: #7f8c8d; } .c-date { background: #16a085; } .c-time { background: #27ae60; }
+        .c-grid { background: #6aa84f; } .c-auto { background: #c0392b; } .c-custom { background: #d35400; }
+        .c-cycle { background: #e67e22; } .c-count { background: #f39c12; } .c-timer { background: #8e44ad; }
+        .c-seq { background: #9b59b6; } .c-cnt { background: #c90076; } .c-moon { background: #34495e; }
+        .c-util { background: #95a5a6; }
+
+        /* MODAL */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+        .modal-card { background: white; width: 95%; max-width: 500px; border-radius: 8px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; }
+        .modal-header { padding: 15px 20px; background: #f8f9fa; border-bottom: 1px solid #eee; font-weight: 700; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .modal-body { padding: 20px; overflow-y: auto; flex-grow: 1; }
+        .modal-footer { padding: 15px 20px; border-top: 1px solid #eee; text-align: right; background: #fff; flex-shrink: 0; }
+        
+        /* FORM */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.75rem; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem; background: #fff; }
+        .row { display: flex; gap: 15px; } .col { flex: 1; }
+        
+        /* LINK BOX */
+        .link-textarea { width: 100%; height: 70px; font-family: monospace; font-size: 0.75rem; color: #333; border: 1px solid #ddd; border-radius: 4px; padding: 10px; resize: none; background: #fafafa; word-break: break-all; white-space: normal; }
+
+        /* SUB LISTS */
+        .sub-list { border: 1px solid #eee; border-radius: 4px; padding: 10px; background: #fafafa; margin-bottom: 10px; }
+        .sub-item { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; background: #fff; padding: 5px; border: 1px solid #eee; border-radius: 4px; }
+        .sub-item:last-child { margin-bottom: 0; }
+        .btn-mini { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; color: #555; }
+        .btn-mini:hover { background: #eee; }
+        .btn-add-row { width: 100%; padding: 8px; background: #eef0f2; border: 1px dashed #ccc; border-radius: 4px; cursor: pointer; font-weight: 600; color: #666; }
     </style>
 </head>
 <body>
-    <div id="edit-btn" style="position:fixed;top:10px;right:10px;display:none;background:#fff;padding:5px;border-radius:50%;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,0.2);">✎</div>
-    <div id="root" style="display:contents"></div>
-    <script>
-        function decode(str) { try { return JSON.parse(decodeURIComponent(escape(window.atob(str)))); } catch(e) { return null; } }
+
+<div class="app-container">
+    <div class="app-header">
+        <div class="header-bar">
+            <div class="header-title" onclick="togglePanel('link-panel')">Link Generator <span>▼</span></div>
+            <div class="header-actions">
+                <button class="btn btn-blue" onclick="refresh()">Refresh</button>
+                <button class="btn btn-green" onclick="copyLink()">Copy</button>
+                <button class="btn btn-grey" onclick="openLink()">Open</button>
+            </div>
+        </div>
+        <div id="link-panel" class="panel">
+            <textarea class="link-textarea" id="result-url" readonly onclick="this.select()"></textarea>
+        </div>
         
-        function render() {
+        <div class="settings-toggle" onclick="togglePanel('settings-panel')">
+            General Settings <span>▼</span>
+        </div>
+        <div id="settings-panel" class="panel">
+            <div class="panel-grid">
+                <div><label>Time Format</label><select id="s-time" onchange="updateGlobal()"><option value="12">12 Hour</option><option value="24">24 Hour</option></select></div>
+                <div><label>Week Start</label><select id="s-week" onchange="updateGlobal()"><option value="monday">Monday</option><option value="sunday">Sunday</option></select></div>
+                <div><label>Theme</label><select id="s-theme" onchange="updateGlobal()"><option value="standard">Standard</option><option value="card">Cards</option><option value="minimal">Minimal</option></select></div>
+                <div><label>Font</label><select id="s-font" onchange="updateGlobal()"><option value="sans">Sans-Serif</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></div>
+                <div><label>Text Size</label><select id="s-size" onchange="updateGlobal()"><option value="small">Small</option><option value="medium" selected>Medium</option><option value="large">Large</option></select></div>
+                <div><label>Padding</label><select id="s-pad" onchange="updateGlobal()"><option value="comfortable">Comfortable</option><option value="compact">Compact</option><option value="spacious">Spacious</option></select></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="canvas-area" id="canvas-area" onmousemove="handleDrag(event)" onmouseup="stopDrag()">
+        <div class="canvas-watermark">Dashboard Area</div>
+        </div>
+
+    <div class="app-footer">
+        <div class="footer-label">Add Block</div>
+        <div class="footer-scroll">
+            <div class="footer-buttons">
+                <button class="add-btn c-text" onclick="addBlock('header')">Text</button>
+                <button class="add-btn c-date" onclick="addBlock('date_display')">Date</button>
+                <button class="add-btn c-time" onclick="addBlock('world_clock')">Time</button>
+                <button class="add-btn c-grid" onclick="addBlock('visual_grid')">Grid</button>
+                <button class="add-btn c-auto" onclick="addBlock('progress_group')">Auto Progress</button>
+                <button class="add-btn c-custom" onclick="addBlock('progress_custom')">Custom Progress</button>
+                <button class="add-btn c-cycle" onclick="addBlock('progress_cycle')">Cycle</button>
+                <button class="add-btn c-count" onclick="addBlock('countdown')">Countdown</button>
+                <button class="add-btn c-timer" onclick="addBlock('timer')">Timer</button>
+                <button class="add-btn c-seq" onclick="addBlock('sequence')">Sequence</button>
+                <button class="add-btn c-cnt" onclick="addBlock('counter')">Counter</button>
+                <button class="add-btn c-moon" onclick="addBlock('moon_phase')">Moon Phase</button>
+                <button class="add-btn c-util" onclick="addBlock('spacer')">Spacer</button>
+                <button class="add-btn c-util" onclick="addBlock('empty')">Empty Block</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header"><span id="modal-title">Settings</span><span style="cursor:pointer" onclick="closeModal()">✕</span></div>
+        <div class="modal-body" id="modal-content"></div>
+        <div class="modal-footer"><button class="btn btn-blue" onclick="saveModal()">Done</button></div>
+    </div>
+</div>
+
+<script>
+    // --- STATE ---
+    let settings = { use24h: '12', weekStart: 'monday', theme: 'standard', font: 'sans', textSize: 'medium', padding: 'comfortable' };
+    let blocks = [];
+    let editingIndex = -1;
+    let resizingIndex = -1;
+    let resizeMode = ''; // 'w' or 'h'
+    let startX = 0; let startY = 0; let startW = 0; let startH = 0;
+
+    // --- DATA ---
+    const dateTokens = [
+        {val: 'day_name_full', txt: 'Day Name (Monday)'}, {val: 'day_name_short', txt: 'Day (Mon)'},
+        {val: 'date_num', txt: 'Date (28)'}, {val: 'month_full', txt: 'Month Name'},
+        {val: 'month_short', txt: 'Month (Jan)'}, {val: 'month_num', txt: 'Month (01)'},
+        {val: 'year', txt: 'Year'}, {val: 'week_num', txt: 'Week #'},
+        {val: 'day_year', txt: 'Day of Year'}, {val: 'quarter', txt: 'Quarter'},
+        {val: 'separator', txt: 'Separator (|)'}, {val: 'space', txt: 'Space'}, {val: 'slash', txt: '/'}
+    ];
+    
+    const colorPalette = [
+        {val:'default', hex:'#000000', name:'Default (Black)'}, {val:'#5b5b5b', hex:'#5b5b5b', name:'Dark Grey'}, 
+        {val:'#7f8c8d', hex:'#7f8c8d', name:'Grey'}, {val:'#bcbcbc', hex:'#bcbcbc', name:'Light Grey'}, 
+        {val:'#cc0000', hex:'#cc0000', name:'Dark Red'}, {val:'#fa2c1c', hex:'#fa2c1c', name:'Red'},
+        {val:'#d35400', hex:'#d35400', name:'Pumpkin'}, {val:'#e67e22', hex:'#e67e22', name:'Orange'}, 
+        {val:'#f39c12', hex:'#f39c12', name:'Yellow Orange'}, {val:'#ffd700', hex:'#ffd700', name:'Gold'}, 
+        {val:'#27ae60', hex:'#27ae60', name:'Green'}, {val:'#16a085', hex:'#16a085', name:'Teal'},
+        {val:'#2980b9', hex:'#2980b9', name:'Blue'}, {val:'#8e44ad', hex:'#8e44ad', name:'Purple'}, 
+        {val:'#c90076', hex:'#c90076', name:'Magenta'}, {val:'#b45f06', hex:'#b45f06', name:'Brown'}
+    ];
+
+    // --- ENCODING ---
+    function encode(obj) { return window.btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
+    function decode(str) { try { return JSON.parse(decodeURIComponent(escape(window.atob(str)))); } catch(e) { return null; } }
+
+    // --- INIT ---
+    function init() {
+        try {
             const hash = window.location.hash.substring(1);
-            if(!hash) return;
-            const data = decode(hash);
-            if(!data) return;
-            
-            // Show edit pencil if not in preview mode
-            const params = new URLSearchParams(window.location.search);
-            if(params.get('preview') !== 'true') {
-                const btn = document.getElementById('edit-btn');
-                btn.style.display = 'block';
-                btn.onclick = () => {
-                     let url = window.location.href.split('#')[0].replace('index.html','admin.html');
-                     window.location.href = url + window.location.hash;
-                };
+            if(hash) {
+                const data = decode(hash);
+                if(data) { settings = data.settings || settings; blocks = data.blocks || blocks; }
+            } else {
+                blocks = [{type: 'header', text: 'Welcome', width: 100, height: 100, id: 'b1'}];
             }
-            
-            const root = document.getElementById('root');
-            root.innerHTML = '';
-            
-            if(data.settings.theme === 'card') document.body.classList.add('theme-card');
-            
-            data.blocks.forEach(b => {
-                const div = document.createElement('div');
-                div.className = 'widget-block';
-                div.style.width = `calc(${b.width}% - 10px)`;
-                div.style.height = `${b.height}px`;
-                
-                // BUBBLE STYLE
-                let bg = 'transparent'; let col = 'inherit';
-                if(b.color && b.color !== 'default') { bg = b.color; col = '#fff'; }
-                if(b.textColor && b.textColor !== 'default') col = b.textColor;
-                
-                // Exceptions
-                if(b.type === 'empty') return; // Truly empty space
-                
-                div.style.background = bg;
-                div.style.color = col;
-                
-                // RENDER CONTENT (Simplified for V67 Viewer - Full logic needs V59 restoration if requested)
-                if(b.type === 'header') div.innerHTML = `<div class="txt-lg">${b.text}</div>`;
-                else if(b.type === 'countdown') {
-                     div.innerHTML = `<div class="countdown-bubble" style="color:${col}"><span>${b.label}</span><span>--</span></div>`;
-                }
-                else div.innerHTML = `<div class="txt-sm" style="text-transform:uppercase">${b.type.replace('_',' ')}</div><div class="txt-lg">${b.label||''}</div>`;
-                
-                root.appendChild(div);
-            });
+        } catch(e) {
+            console.error("Init Error", e);
+            blocks = [{type: 'header', text: 'Welcome', width: 100, height: 100, id: 'b1'}];
         }
-        window.addEventListener('hashchange', render);
+        
+        // Sync Inputs
+        document.getElementById('s-time').value = settings.use24h;
+        document.getElementById('s-week').value = settings.weekStart;
+        document.getElementById('s-theme').value = settings.theme;
+        document.getElementById('s-font').value = settings.font;
+        document.getElementById('s-size').value = settings.textSize;
+        document.getElementById('s-pad').value = settings.padding;
+
         render();
-    </script>
+        updateLink();
+    }
+
+    // --- RENDER ENGINE ---
+    function render() {
+        const area = document.getElementById('canvas-area');
+        // Clear existing blocks (keep watermark)
+        const existing = area.querySelectorAll('.widget-block');
+        existing.forEach(el => el.remove());
+
+        blocks.forEach((b, i) => {
+            if(!b.id) b.id = 'blk_' + Math.random().toString(36).substr(2,9);
+            
+            const div = document.createElement('div');
+            div.className = 'widget-block';
+            div.id = `card-${i}`;
+            div.draggable = true;
+            div.dataset.index = i;
+            
+            // Layout Logic
+            div.style.width = `calc(${b.width}% - 10px)`;
+            div.style.height = `${b.height}px`;
+            
+            // Visual Preview (Admin Bubble)
+            let previewBg = '#fff'; let previewCol = '#333';
+            if(b.color && b.color !== 'default') { previewBg = b.color; previewCol = '#fff'; }
+            if(b.textColor && b.textColor !== 'default') previewCol = b.textColor;
+            if(b.type === 'empty') { previewBg = '#f8f9fa'; previewCol = '#ccc'; div.style.borderStyle = 'dashed'; }
+            
+            let content = '';
+            if(b.type === 'header') content = `<div class="p-head">${b.text}</div>`;
+            else if(b.type === 'date_display') content = `<div class="p-head">Monday</div><div class="p-sub">Jan 01</div>`;
+            else if(b.type === 'world_clock') {
+                let txt = b.locations ? b.locations.length + ' Cities' : 'No Cities';
+                content = `<div class="p-sub">${txt}</div><div class="p-head">12:00</div>`;
+            }
+            else if(b.type === 'empty') content = `<div style="text-align:center;font-style:italic">Empty Space</div>`;
+            else content = `<div style="font-size:0.7em;text-transform:uppercase;opacity:0.6">${b.type.replace('_',' ')}</div><div class="p-head">${b.label||''}</div>`;
+            
+            div.innerHTML = `
+                <div class="block-controls">
+                    <div class="ctrl-btn" onclick="quickResize(${i})">↔</div>
+                    <div class="ctrl-btn" onclick="editBlock(${i})">⚙️</div>
+                    <div class="ctrl-btn ctrl-del" onclick="deleteBlock(${i})">✕</div>
+                </div>
+                <div class="preview-content" style="background:${previewBg}; color:${previewCol}">
+                    ${content}
+                </div>
+                <div class="resize-w" onmousedown="initResize(${i}, 'w', event)"></div>
+                <div class="resize-h" onmousedown="initResize(${i}, 'h', event)"></div>
+            `;
+            
+            area.appendChild(div);
+        });
+        
+        addDragListeners();
+    }
+
+    // --- DRAG, DROP, RESIZE ---
+    window.addBlock = (type) => {
+        let b = { type: type, width: 50, height: 100, id: 'b_'+Date.now() };
+        // Defaults (Brain from V59)
+        if(type === 'header') { b.text = 'New Text'; b.height = 60; }
+        if(type === 'date_display') { b.line1 = ['day_name_full','space','date_num']; b.line2 = ['month_full','space','year']; b.height = 80; }
+        if(type === 'world_clock') { b.locations = [{label:'London', timezone:'Europe/London'}]; b.height = 80; }
+        if(type === 'progress_group') { b.items = [{type:'life', label:'Life', visible:true},{type:'year', label:'Year', visible:true}]; b.height = 120; }
+        if(type === 'sequence') { b.steps = [{label:'Focus', duration:25}]; b.height = 150; }
+        if(type === 'spacer') b.height = 30;
+        if(type === 'empty') b.height = 50;
+        
+        blocks.push(b); render(); updateLink();
+        // Scroll to bottom
+        setTimeout(() => { const c = document.querySelector('.canvas-area'); c.scrollTop = c.scrollHeight; }, 50);
+    };
+
+    window.deleteBlock = (i) => { blocks.splice(i, 1); render(); updateLink(); };
+    
+    window.quickResize = (i) => {
+        const w = blocks[i].width || 100;
+        blocks[i].width = w >= 100 ? 25 : w >= 75 ? 100 : w >= 50 ? 75 : 50;
+        render(); updateLink();
+    };
+
+    window.initResize = (i, mode, e) => {
+        e.stopPropagation(); resizingIndex = i; resizeMode = mode;
+        startX = e.clientX; startY = e.clientY;
+        const el = document.getElementById(`card-${i}`);
+        startW = el.offsetWidth; startH = el.offsetHeight;
+        document.body.style.cursor = mode === 'w' ? 'col-resize' : 'row-resize';
+    };
+
+    window.handleDrag = (e) => {
+        if(resizingIndex === -1) return;
+        const b = blocks[resizingIndex];
+        const area = document.querySelector('.canvas-area');
+        if(resizeMode === 'w') {
+            const diff = e.clientX - startX;
+            let newPx = startW + diff;
+            let newPct = (newPx / (area.offsetWidth - 40)) * 100;
+            if(newPct < 15) newPct = 15; if(newPct > 100) newPct = 100;
+            b.width = newPct;
+        } else {
+            const diff = e.clientY - startY;
+            let newH = startH + diff;
+            if(newH < 30) newH = 30;
+            b.height = newH;
+        }
+        render();
+    };
+
+    window.stopDrag = () => { if(resizingIndex !== -1) { resizingIndex = -1; document.body.style.cursor = 'default'; updateLink(); } };
+
+    // --- REORDER ---
+    let dragSrc = null;
+    function addDragListeners() {
+        document.querySelectorAll('.widget-block').forEach(item => {
+            item.addEventListener('dragstart', function(e) { dragSrc = this; e.dataTransfer.effectAllowed = 'move'; this.classList.add('dragging'); });
+            item.addEventListener('dragend', function() { this.classList.remove('dragging'); });
+            item.addEventListener('dragover', function(e) { e.preventDefault(); return false; });
+            item.addEventListener('drop', function(e) {
+                e.stopPropagation();
+                if (dragSrc !== this) {
+                    const s = parseInt(dragSrc.dataset.index);
+                    const d = parseInt(this.dataset.index);
+                    const t = blocks[s]; blocks.splice(s, 1); blocks.splice(d, 0, t);
+                    render(); updateLink();
+                }
+                return false;
+            });
+        });
+    }
+
+    // --- MODAL SETTINGS (The Brain Logic) ---
+    window.editBlock = (i) => {
+        editingIndex = i;
+        const b = blocks[i];
+        const c = document.getElementById('modal-content');
+        
+        let labelText = b.type.replace('_',' ');
+        if(b.type === 'world_clock') labelText = 'Time';
+        if(b.type === 'empty') labelText = 'Empty Block';
+        if(b.type === 'progress_custom') labelText = 'Custom Progress';
+        
+        document.getElementById('modal-title').innerText = `Edit ${labelText}`;
+        
+        let h = `<div class="form-group"><div class="row">
+            <div class="col"><label>Width (%)</label><input type="number" id="in-width" value="${Math.round(b.width||100)}"></div>
+            <div class="col"><label>Height (px)</label><input type="number" id="in-height" value="${Math.round(b.height||100)}"></div>
+        </div></div>`;
+        
+        if(!['date_display','world_clock','spacer','empty'].includes(b.type)) {
+            h += `<div class="form-group"><label>Label</label><input id="in-label" value="${b.label||''}"></div>`;
+        }
+
+        // SPECIFIC LOGIC
+        if(b.type === 'header') h += `<div class="form-group"><label>Text</label><input id="in-text" value="${b.text}"></div>`;
+        else if(b.type === 'world_clock') h += `<div class="form-group"><label>Cities</label><div class="sub-list" id="mod-sub-list"></div><button class="btn-add-row" onclick="addModalCity()">+ Add City</button></div>`;
+        else if(b.type === 'date_display') h += `<div class="form-group"><label>Line 1</label><div class="sub-list" id="mod-l1"></div><button class="btn-add-row" onclick="addDateToken('line1')">+ Element</button></div><div class="form-group"><label>Line 2</label><div class="sub-list" id="mod-l2"></div><button class="btn-add-row" onclick="addDateToken('line2')">+ Element</button></div>`;
+        else if(b.type === 'progress_group') h += `<div class="form-group"><label>Progress Bars</label><div class="sub-list" id="mod-prog-list"></div></div>`;
+        else if(b.type === 'sequence') h += `<div class="form-group"><label>Steps</label><div class="sub-list" id="mod-step-list"></div><button class="btn-add-row" onclick="addSequenceStep()">+ Step</button></div>`;
+        else if(b.type === 'visual_grid') h += `<div class="form-group"><label>Grid Type</label><select id="in-gtype"><option value="year">Year</option><option value="month">Month</option><option value="life">Life</option></select></div>`;
+        else if(b.type === 'countdown') h += `<div class="form-group"><label>Date</label><input type="date" id="in-date" value="${b.date||''}"><div style="margin-top:10px"><label>Include Time</label><input type="checkbox" id="in-inctime" ${b.includeTime?'checked':''}></div></div>`;
+        
+        // COLOR
+        h += `<div class="form-group"><div class="row">
+            <div class="col"><label>Accent Color</label><select id="in-color">${getColorOpts(b.color)}</select>
+            <input type="color" id="in-color-hex" value="${b.color&&b.color.startsWith('#')?b.color:'#000000'}" style="width:100%;height:30px;margin-top:5px;padding:0;"></div>
+            <div class="col"><label>Text Color</label><select id="in-tcolor">${getColorOpts(b.textColor)}</select>
+            <input type="color" id="in-tcolor-hex" value="${b.textColor&&b.textColor.startsWith('#')?b.textColor:'#37352f'}" style="width:100%;height:30px;margin-top:5px;padding:0;"></div>
+        </div></div>`;
+        
+        c.innerHTML = h;
+        
+        // RENDER SUBS
+        if(b.type === 'world_clock') renderModalCities(b.locations);
+        if(b.type === 'date_display') { renderModalDateTokens('mod-l1', b.line1); renderModalDateTokens('mod-l2', b.line2); }
+        if(b.type === 'progress_group') renderModalProgress(b.items);
+        if(b.type === 'sequence') renderModalSequence(b.steps);
+        if(b.type === 'visual_grid') document.getElementById('in-gtype').value = b.gridType;
+
+        document.getElementById('modal-overlay').style.display = 'flex';
+    };
+
+    window.saveModal = () => {
+        const b = blocks[editingIndex];
+        b.width = parseFloat(document.getElementById('in-width').value) || 100;
+        b.height = parseFloat(document.getElementById('in-height').value) || 100;
+        
+        const l = document.getElementById('in-label'); if(l) b.label = l.value;
+        const t = document.getElementById('in-text'); if(t) b.text = t.value;
+        
+        // Colors
+        let col = document.getElementById('in-color').value;
+        if(col === 'custom') col = document.getElementById('in-color-hex').value;
+        b.color = col;
+        
+        let tcol = document.getElementById('in-tcolor').value;
+        if(tcol === 'custom') tcol = document.getElementById('in-tcolor-hex').value;
+        b.textColor = tcol;
+        
+        // Specifics
+        if(b.type === 'visual_grid') b.gridType = document.getElementById('in-gtype').value;
+        if(b.type === 'countdown') { b.date = document.getElementById('in-date').value; b.includeTime = document.getElementById('in-inctime').checked; }
+
+        render(); updateLink(); closeModal();
+    };
+
+    window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
+
+    function getColorOpts(sel) {
+        let opts = colorPalette.map(c => `<option value="${c.hex}" ${sel===c.hex?'selected':''}>${c.name}</option>`).join('');
+        opts += `<option value="custom" ${sel && !colorPalette.find(p=>p.hex===sel) ? 'selected' : ''}>Custom</option>`;
+        return opts;
+    }
+
+    // --- SUB RENDERERS ---
+    window.renderModalCities = (locs) => {
+        const c = document.getElementById('mod-sub-list'); c.innerHTML = '';
+        locs.forEach((loc, i) => {
+            c.innerHTML += `<div class="sub-item"><input value="${loc.label}" oninput="blocks[editingIndex].locations[${i}].label=this.value"><div class="ctrl-btn ctrl-del" onclick="removeItem('locations', ${i})">×</div></div>`;
+        });
+    };
+    window.addModalCity = () => { blocks[editingIndex].locations.push({label:'New City', timezone:'UTC'}); editBlock(editingIndex); };
+
+    window.renderModalDateTokens = (id, tokens) => {
+        const c = document.getElementById(id); c.innerHTML = '';
+        tokens.forEach((t, i) => {
+            let val = typeof t === 'string' ? t : t.type;
+            let opts = dateTokens.map(dt => `<option value="${dt.val}" ${val===dt.val?'selected':''}>${dt.txt}</option>`).join('');
+            c.innerHTML += `<div class="sub-item"><select onchange="updateDateToken('${id==='mod-l1'?'line1':'line2'}', ${i}, this.value)">${opts}</select><div class="ctrl-btn ctrl-del" onclick="removeDateToken('${id==='mod-l1'?'line1':'line2'}', ${i})">×</div></div>`;
+        });
+    };
+    window.updateDateToken = (line, i, val) => { blocks[editingIndex][line][i] = val; };
+    window.addDateToken = (line) => { blocks[editingIndex][line].push('space'); editBlock(editingIndex); };
+    window.removeDateToken = (line, i) => { blocks[editingIndex][line].splice(i, 1); editBlock(editingIndex); };
+
+    window.renderModalProgress = (items) => {
+        const c = document.getElementById('mod-prog-list'); c.innerHTML = '';
+        items.forEach((item, i) => {
+            c.innerHTML += `<div class="sub-item"><input type="checkbox" ${item.visible!==false?'checked':''} onchange="blocks[editingIndex].items[${i}].visible=this.checked"><span style="font-size:0.8rem;width:50px">${item.type}</span><input value="${item.label}" oninput="blocks[editingIndex].items[${i}].label=this.value"></div>`;
+        });
+    };
+
+    window.renderModalSequence = (steps) => {
+        const c = document.getElementById('mod-step-list'); c.innerHTML = '';
+        steps.forEach((s, i) => {
+            c.innerHTML += `<div class="sub-item"><input value="${s.label}" oninput="blocks[editingIndex].steps[${i}].label=this.value"><input type="number" value="${s.duration}" style="width:60px" oninput="blocks[editingIndex].steps[${i}].duration=this.value"><div class="ctrl-btn ctrl-del" onclick="removeItem('steps', ${i})">×</div></div>`;
+        });
+    };
+    window.addSequenceStep = () => { blocks[editingIndex].steps.push({label:'Step', duration:10}); editBlock(editingIndex); };
+    window.removeItem = (arr, i) => { blocks[editingIndex][arr].splice(i, 1); editBlock(editingIndex); };
+
+    // --- GLOBAL ---
+    window.updateGlobal = () => {
+        settings.use24h = document.getElementById('s-time').value;
+        settings.weekStart = document.getElementById('s-week').value;
+        settings.theme = document.getElementById('s-theme').value;
+        settings.font = document.getElementById('s-font').value;
+        settings.textSize = document.getElementById('s-size').value;
+        settings.padding = document.getElementById('s-pad').value;
+        updateLink();
+    };
+
+    window.togglePanel = (id) => document.getElementById(id).classList.toggle('open');
+    window.updateLink = () => {
+        const json = JSON.stringify({ settings, blocks });
+        const hash = encode(json);
+        const url = window.location.href.split('#')[0].replace('admin.html', 'index.html');
+        document.getElementById('result-url').value = `${url}#${hash}`;
+        window.history.replaceState(null, null, `#${hash}`);
+    };
+    
+    window.refresh = () => render();
+    window.copyLink = () => { document.getElementById('result-url').select(); document.navigator.clipboard.writeText(document.getElementById('result-url').value); };
+    window.openLink = () => window.open(document.getElementById('result-url').value, '_blank');
+
+    init();
+</script>
 </body>
 </html>
